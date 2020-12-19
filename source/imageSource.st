@@ -351,7 +351,7 @@ addMethod: text | meth |
 	meth notNil ifTrue: [
 		methods at: meth name put: meth.
 		Method flushCache.
-		'ok' printNl.
+		(System debugging) ifTrue: ['ok' printNl.]
 		^ meth
 	].
 	^ nil
@@ -462,16 +462,33 @@ notNil
 	^ false
 !
 METHOD Undefined
-main	| command |
+main	| arg hadFile command |
 	" initialize classes "
 	Char initialize.
 
-    self initSingletons.
+	self initSingletons.
+
+	" go through arguments "
+	hadFile <- false.
+        [arg <- System arg. arg notNil] whileTrue: [
+		(arg at: 1) = $-
+		ifTrue: [
+			arg = '-v' ifTrue: [ System version printNl. hadFile <- true. ]
+			(arg = '-s' or: [arg = '-d']) ifTrue: [ System arg. ]
+			arg = '-r' ifTrue: [ hadFile <- false. ]
+		]
+		ifFalse: [
+			hadFile <- true.
+			File fileIn: arg.
+		].
+	].
 
 	" main execution loop "
-	[ '-> ' print. command <- String input. command notNil ]
-		whileTrue: [ command isEmpty
-			ifFalse: [ command doIt printNl ] ]
+	hadFile ifFalse: [
+		[ '-> ' print. command <- String input. command notNil ]
+			whileTrue: [ command isEmpty
+				ifFalse: [ command doIt printNl ] ]
+	]
 !
 METHOD Undefined
 initSingletons
@@ -2487,9 +2504,17 @@ readLine	| value  c nl |
 !
 METHOD File
 fileInDispatch: cmd | c |
-	" Immediate execte "
+	" Immediate execute "
 	cmd = $+ ifTrue: [
-		self readLine doIt printNl.
+		self readLine doIt.
+		^ self
+	].
+
+        " Immediate execute method "
+        cmd = $m ifTrue: [
+		Object subclass: #Main.
+		self mainCommand
+		(globals at: #Main) main.
 		^ self
 	].
 
@@ -2535,6 +2560,16 @@ methodCommand: classCmd | name aClass text line |
 	classCmd
 		ifTrue: [ aClass addMethod: text ]
 		ifFalse: [ aClass class addMethod: text ]
+!
+METHOD File
+mainCommand | mainClass text line |
+        mainClass <- globals at: #Main.
+        text <- 'main'.
+        [ line <- self readLine.
+          line isNil ifTrue: [ ^ self error:
+                'unexpected end of input during fileIn' ].
+          line ~= '!'] whileTrue: [ text <- text + line + String newline ].
+        mainClass class addMethod: text.
 !
 METHOD File
 at: idx
@@ -2591,7 +2626,7 @@ parse: c with: encoderClass	| encoder meth name |
 	self nextLex.
 	encoder <- encoderClass new.
 	name <- self readMethodName.
-	(c ~= Undefined) ifTrue: [
+	(c ~= Undefined and: [System debugging]) ifTrue: [
 		'Compiling ' print. c print. ':' print.
 		name print. '... ' print
 	].
@@ -3575,6 +3610,26 @@ METHOD MetaSystem
 suffixForDLL
   "FIXME: For HP/UX we should use the suffix .sl"
   self isWindows ifTrue: [ ^'.dll' ] ifFalse: [ ^'.so' ]
+!
+METHOD MetaSystem
+argc
+  <111>
+!
+METHOD MetaSystem
+argv: x
+  <112 x>
+!
+METHOD MetaSystem
+arg
+  <113>
+!
+METHOD MetaSystem
+version
+  <114>
+!
+METHOD MetaSystem
+debugging
+  <115>
 !
 COMMENT --------- Pathname ---------
 METHOD MetaPathname

@@ -10,11 +10,14 @@ USE_SOCKET=yes
 
 
 #
-# Basic compiler configuration (should be ok)
+# Basic compiler configuration
 #
+EXE_EXT=
 CC=gcc
+HOST_CC=gcc
 CPPFLAGS=
-CFLAGS=-g -Wall $(CPPFLAGS)
+CFLAGS=-O3 -g -Wall $(CPPFLAGS)
+HOST_CFLAGS=-O3 -g -Wall
 LDFLAGS_EXTRA=
 LDFLAGS=$(LDFLAGS_EXTRA)
 
@@ -75,26 +78,28 @@ endif
 
 .PHONY: all image clean
 
-all: bin/st image
+all: bin/st$(EXE_EXT)
 
-bin/st: $(SOURCES:.c=.o)
+bin/st$(EXE_EXT): $(SOURCES:.c=.o)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-bin/imageBuilder: ImageBuilder/imageBuilder.o
-	$(CC) -o $@ $^ $(LDFLAGS)
+bin/imageBuilder: ImageBuilder/imageBuilder.c
+	$(HOST_CC) -o $@ $^ $(HOST_CFLAGS) $(LDFLAGS)
 
-bin/LittleSmalltalk.image: bin/imageSource bin/imageBuilder
-	$ cd bin && ./imageBuilder >imageBuilder.log
+LittleSmalltalk.image: source/imageSource.st bin/imageBuilder
+	$ ./bin/imageBuilder >imageBuilder.log
 
-image: bin/LittleSmalltalk.image
+LittleSmalltalk.h: LittleSmalltalk.image
+	xxd -i $< > $@
+
+source/main.o: LittleSmalltalk.h
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 clean:
-	@rm -f `find . | grep \~`
 	@rm -f source/*.o ImageBuilder/*.o bin/*.o
-	@rm -f bin/imageBuilder bin/LittleSmalltalk.image bin/st bin/st_noffi bin/*.log
+	@rm -f bin/imageBuilder LittleSmalltalk.image LittleSmalltalk.h bin/st$(EXE_EXT) imageBuilder.log
 
 query-%:
 	@echo $($(*))

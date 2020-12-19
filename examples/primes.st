@@ -6,6 +6,7 @@ isPrime
 	].
 	^ true
 !
+
 =Number
 primes: n | cand count |
 	2 print.
@@ -20,4 +21,10 @@ primes: n | cand count |
 		cand <- cand + 2
 	].
 	Char newline print
+!
+
+m | arg |
+	[arg <- System arg. arg notNil] whileTrue: [
+		Number primes: arg asNumber.
+	]
 !

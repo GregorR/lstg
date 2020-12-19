@@ -65,6 +65,11 @@
 #define LST_FILEMAX 20
 static FILE    *filePointers[LST_FILEMAX];
 
+/* Set by main */
+char **lstArgv;
+int lstArgc, lstArgi;
+int lstDebugging;
+
 void lstPrimitivesInit()
 {
 #if defined(LST_USE_FFI) && 1 == LST_USE_FFI
@@ -351,6 +356,32 @@ struct object  *primitive(int primitiveNumber, struct object *args,
 
     case 110: /* Sleep */
       Sleep(integerValue(args->data[0]));
+      break;
+
+    case 111: /* argc */
+      returnedValue = newInteger(lstArgc);
+      break;
+
+    case 112: /* argv[i] */
+      returnedValue = lstNewString(lstArgv[integerValue(args->data[0])]);
+      break;
+
+    case 113: /* next arg */
+      if (lstArgi + 1 >= lstArgc)
+      {
+        /* We already passed all the arguments! */
+        returnedValue = nilObject;
+      } else {
+        returnedValue = lstNewString(lstArgv[++lstArgi]);
+      }
+      break;
+
+    case 114: /* System version */
+      returnedValue = lstNewString(LITTLE_SMALLTALK_VERSION);
+      break;
+
+    case 115: /* Debugging? */
+      returnedValue = lstDebugging ? trueObject : falseObject;
       break;
 
 #if defined(LST_USE_FFI)

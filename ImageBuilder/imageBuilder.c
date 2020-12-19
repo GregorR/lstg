@@ -2074,8 +2074,8 @@ int main(void)
   bigBang();
   addArgument("self");
 
-  if((fin = fopen("imageSource", "rb")) == NULL)
-    sysError("file in error", "imageSource");
+  if((fin = fopen("source/imageSource.st", "rb")) == NULL)
+    sysError("file in error", "source/imageSource.st");
 
   /*
      then read the image source file 

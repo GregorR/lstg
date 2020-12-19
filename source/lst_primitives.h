@@ -39,6 +39,12 @@
 
 #include "memory.h"
 
+#define LITTLE_SMALLTALK_VERSION "Little Smalltalk-G, version 6.0"
+
+extern char **lstArgv;
+extern int lstArgc;
+extern int lstDebugging;
+
 void lstPrimitivesInit();
 void lstPrimitivesRelease();
 struct object  *primitive(int primitiveNumber, struct object *args,

@@ -46,7 +46,7 @@
 #include "globs.h"
 #include "interp.h"
 
-extern int      debugging;      /* true if we are debugging */
+extern int      lstDebugging;      /* true if we are debugging */
 
 /*
 	static memory space -- never recovered
@@ -114,7 +114,7 @@ void gcinit(int staticsz, int dynamicsz)
   spaceSize = dynamicsz;
   memoryBase = spaceOne;
   memoryPointer = memoryBase + spaceSize;
-  if(debugging)
+  if(lstDebugging)
   {
     printf("space one 0x%p, top 0x%p,"
            " space two 0x%p , top 0x%p\n",

@@ -61,9 +61,7 @@
 
 */
 
-#ifndef DefaultImageFile
-#define DefaultImageFile "LittleSmalltalk.image"
-#endif
+#include "../LittleSmalltalk.h"
 
 #define DefaultStaticSize 40000
 #define DefaultDynamicSize 40000
@@ -85,7 +83,7 @@
 
 /* #define COUNTTEMPS */
 
-unsigned int    debugging = 0,
+unsigned int
   cacheHit = 0,
   cacheMiss = 0,
   gccount = 0;
@@ -130,12 +128,11 @@ int main(int argc, char **argv)
                   staticSize,
                   dynamicSize;
   FILE           *fp;
-  char            imageFileName[120],
-                 *p;
+  char           *p;
 
-  strcpy(imageFileName, DefaultImageFile);
   staticSize = DefaultStaticSize;
   dynamicSize = DefaultDynamicSize;
+  lstDebugging = 0;
 
   /*
    * See if our environment tells us what TMPDIR to use
@@ -149,11 +146,7 @@ int main(int argc, char **argv)
    */
   for(i = 1; i < argc; i++)
   {
-    if(strcmp(argv[i], "-v") == 0)
-    {
-      printf("Little Smalltalk, version 5.0 (Alpha)\n");
-    }
-    else if(strcmp(argv[i], "-s") == 0)
+    if(strcmp(argv[i], "-s") == 0)
     {
       staticSize = atoi(argv[++i]);
     }
@@ -163,27 +156,19 @@ int main(int argc, char **argv)
     }
     else if(strcmp(argv[i], "-g") == 0)
     {
-      debugging = 1;
-    }
-    else
-    {
-      strcpy(imageFileName, argv[i]);
+      lstDebugging = 1;
     }
   }
+  lstArgv = argv;
+  lstArgc = argc;
 
   gcinit(staticSize, dynamicSize);
 
   /*
      read in the method from the image file 
    */
-  fp = fopen(imageFileName, "rb");
-  if(!fp)
-  {
-    fprintf(stderr, "cannot open image file: %s\n", imageFileName);
-    exit(1);
-  }
-
-  printf("%d objects in image\n", fileIn(fp));
+  fp = fmemopen(LittleSmalltalk_image, LittleSmalltalk_image_len, "r");
+  fileIn(fp);
   fclose(fp);
 
   lstPrimitivesInit();
@@ -218,7 +203,7 @@ int main(int argc, char **argv)
   switch (execute(aProcess, 0))
   {
     case 2:
-      printf("User defined return\n");
+      if (lstDebugging) printf("User defined return\n");
       break;
 
     case 3:
@@ -231,7 +216,7 @@ int main(int argc, char **argv)
       break;
 
     case 4:
-      printf("\nnormal return\n");
+      if (lstDebugging) printf("\nnormal return\n");
       break;
 
     case 5:
@@ -242,16 +227,19 @@ int main(int argc, char **argv)
       printf("unknown return code\n");
       break;
   }
-  printf("cache hit %u miss %u", cacheHit, cacheMiss);
-#define SCALE (1000)
-  while((cacheHit > INT_MAX / SCALE) || (cacheMiss > INT_MAX / SCALE))
+  if (lstDebugging)
   {
-    cacheHit /= 10;
-    cacheMiss /= 10;
+    printf("cache hit %u miss %u", cacheHit, cacheMiss);
+#define SCALE (1000)
+    while((cacheHit > INT_MAX / SCALE) || (cacheMiss > INT_MAX / SCALE))
+    {
+      cacheHit /= 10;
+      cacheMiss /= 10;
+    }
+    i = (SCALE * cacheHit) / (cacheHit + cacheMiss);
+    printf(" ratio %u.%u%%\n", i / 10, i % 10);
+    printf("%u garbage collections\n", gccount);
   }
-  i = (SCALE * cacheHit) / (cacheHit + cacheMiss);
-  printf(" ratio %u.%u%%\n", i / 10, i % 10);
-  printf("%u garbage collections\n", gccount);
 
   lstPrimitivesRelease();
 

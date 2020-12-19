@@ -56,7 +56,6 @@
 #include <stdio.h>
 #include <string.h>             /* For bzero() */
 
-extern int      debugging;
 extern int      cacheHit;
 extern int      cacheMiss;
 
@@ -118,11 +117,11 @@ static void indent(struct object *ctx)
 }
 
 #   define PC (bytePointer-1)
-#   define DBG0(msg) if (debugging) {indent(context); printf("%d: %s\n", PC, msg);}
-#   define DBG1(msg, arg) if (debugging) {indent(context); \
+#   define DBG0(msg) if (lstDebugging) {indent(context); printf("%d: %s\n", PC, msg);}
+#   define DBG1(msg, arg) if (lstDebugging) {indent(context); \
 	printf("%d: %s %d\n", PC, msg, arg);}
 #   define DBGS(msg, cl, sel) \
-	if (debugging) { \
+	if (lstDebugging) { \
 		indent(context); \
                 char clnm[1024], selnm[1024]; \
                 lstGetString(clnm, sizeof(clnm), (struct object *) cl); \
@@ -1152,7 +1151,7 @@ int execute(struct object *aProcess, int ticks)
             break;
 
           case 18:             /* turn on debugging */
-            debugging = 1;
+            lstDebugging = 1;
             returnedValue = nilObject;
             break;
 

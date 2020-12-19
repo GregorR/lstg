@@ -308,7 +308,7 @@ struct object *lstFfiPrimitive(int primitiveNumber, struct object *args)
         i = SIZE(obj);
         switch(i)
         {
-        case 0:
+        default:
             j = ((int(*)())func)();
             break;
 
@@ -377,7 +377,7 @@ struct object *lstFfiPrimitive(int primitiveNumber, struct object *args)
         i = SIZE(obj);
         switch(i)
         {
-        case 0:
+        default:
             str = ((char*(*)())func)();
             break;
 
