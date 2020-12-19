@@ -1,2 +1,6 @@
 *.o
 *.swp
+*.log
+bin/
+LittleSmalltalk.image
+LittleSmalltalk.h

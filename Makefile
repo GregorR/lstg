@@ -81,9 +81,11 @@ endif
 all: bin/st$(EXE_EXT)
 
 bin/st$(EXE_EXT): $(SOURCES:.c=.o)
+	mkdir -p bin
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 bin/imageBuilder: ImageBuilder/imageBuilder.c
+	mkdir -p bin
 	$(HOST_CC) -o $@ $^ $(HOST_CFLAGS) $(LDFLAGS)
 
 LittleSmalltalk.image: source/imageSource.st bin/imageBuilder
@@ -98,7 +100,7 @@ source/main.o: LittleSmalltalk.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 clean:
-	@rm -f source/*.o ImageBuilder/*.o bin/*.o
+	@rm -f source/*.o ImageBuilder/*.o
 	@rm -f bin/imageBuilder LittleSmalltalk.image LittleSmalltalk.h bin/st$(EXE_EXT) imageBuilder.log
 
 query-%:
