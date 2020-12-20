@@ -133,11 +133,12 @@ int             execute(struct object *aProcess, int ticks);
 #define previousContextInBlock   previousContextInContext
 #define argumentLocationInBlock  7
 #define creatingContextInBlock   8
+#define lineInBlock              9
 
 /* the following are saved in different place so they don't get clobbered*/
-#define bytePointerInBlock       9
+#define bytePointerInBlock      10
 
-#define blockSize               10
+#define blockSize               11
 
 
 /*
@@ -156,9 +157,10 @@ int             execute(struct object *aProcess, int ticks);
 #define temporarySizeInMethod 4
 #define classInMethod         5
 #define textInMethod          6
-#define packageInMethod       7
+#define fileInMethod          7
+#define lineInMethod          8
 
-#define methodSize            8
+#define methodSize            9
 
 
 /*

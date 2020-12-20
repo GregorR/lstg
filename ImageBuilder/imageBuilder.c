@@ -938,6 +938,7 @@ int parseBlock(void)
   savestart = p;
   p++;
   skipSpaces();
+  genInstruction(PushConstant, 0);
   genInstruction(PushBlock, tempTop);
   savedLocation = byteTop;
   genVal(0);
@@ -1526,6 +1527,8 @@ int parseMethod(struct object *theMethod)
     theMethod->data[temporarySizeInMethod] = newInteger(maxTemp);
     theMethod->data[classInMethod] = currentClass;
     theMethod->data[textInMethod] = newString(inputBuffer);
+    theMethod->data[fileInMethod] = nilObject;
+    theMethod->data[lineInMethod] = nilObject;
     return 1;
   }
   return 0;

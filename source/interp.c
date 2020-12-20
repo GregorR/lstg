@@ -550,6 +550,9 @@ int execute(struct object *aProcess, int ticks)
            low is arg location 
          */
         /*
+           stack top is line number
+         */
+        /*
            next byte is goto value 
          */
         high = VAL;
@@ -564,6 +567,7 @@ int execute(struct object *aProcess, int ticks)
         returnedValue->data[bytePointerInContext] =
           returnedValue->data[stackTopInBlock] =
           returnedValue->data[previousContextInBlock] = NULL;
+        returnedValue->data[lineInBlock] = stack->data[--stackTop];
         returnedValue->data[bytePointerInBlock] = newInteger(bytePointer);
         returnedValue->data[argumentLocationInBlock] = newInteger(low);
         returnedValue->data[stackInBlock] = rootStack[--rootTop];

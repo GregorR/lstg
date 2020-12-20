@@ -116,8 +116,5 @@ source/main.o: source/main.c lstg.h
 	$(HOST_CC) -c -o $@ $< $(HOST_CFLAGS)
 
 clean:
-	@rm -f source/*.o ImageBuilder/*.o
-	@rm -f bin/imageBuilder lstg.image lstg.h bin/lstg$(EXE_EXT) bin/st imageBuilder.log
-
-query-%:
-	@echo $($(*))
+	rm -f source/*.o ImageBuilder/*.o
+	rm -f bin/imageBuilder lstg.image lstg.h bin/lstg$(EXE_EXT) bin/st imageBuilder.log

@@ -57,8 +57,8 @@ CLASS True          Boolean
 CLASS False         Boolean
 CLASS Process       Object context state result
 CLASS Context       Object method arguments temporaries stack bytePointer stackTop previousContext
-CLASS Block         Context argumentLocation creatingContext oldBytePointer
-CLASS Method        Object name byteCodes literals stackSize temporarySize class text package
+CLASS Block         Context argumentLocation creatingContext line oldBytePointer
+CLASS Method        Object name byteCodes literals stackSize temporarySize class text file line
 CLASS Magnitude     Object
 RAWCLASS MetaSymbol    Class         MetaMagnitude     symbols
 RAWCLASS Symbol        MetaSymbol    Magnitude
@@ -618,7 +618,11 @@ backtrace | narg |
 		" backtrace context calls "
 	narg <- 0.
 	method name print.
-	'(' print.
+	' ' print.
+	method file print.
+	':' print.
+	method line print.
+	' (' print.
 	arguments do: [:a |
 		(narg > 0) ifTrue: [ ', ' print ].
 		a class print.
@@ -666,8 +670,13 @@ whileFalse: aBlock
 METHOD Block
 backtrace | narg |
 		" backtrace context calls "
-	'block from ' print. method name print.
-	'(' print.
+	'block from ' print.
+	method name print.
+	' ' print.
+	method file print.
+	':' print.
+	line print.
+	' (' print.
 	narg <- 0.
 	arguments do: [:a |
 		(narg > 0) ifTrue: [', ' print ].
@@ -781,6 +790,14 @@ stackSize
 METHOD Method
 temporarySize
 	^temporarySize
+!
+METHOD Method
+file
+	^file
+!
+METHOD Method
+line
+	^line
 !
 METHOD Method
 args: argNames inst: instNames temp: tempNames
@@ -3146,6 +3163,8 @@ isBlock
 METHOD BlockNode
 compile: encoder block: inBlock | patchLocation |
 	super compile: encoder.
+	" FIXME: Line number "
+	encoder genHigh: 5 low: 10.
 	encoder genHigh: 12 low: temporaryLocation.
 	patchLocation <- encoder genVal: 0.
 	self compileInLine: encoder block: true.
