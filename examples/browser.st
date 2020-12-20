@@ -1,21 +1,14 @@
 " browser.st
 	Utility to interactively examine data structures
 "
-+Object subclass: #Browser variables: #(stack)
-
-" on:
-	Instantiate a browser on the named object
-"
-=Browser
-on: obj
-	self new on: obj
-!
+Object subclass: #Browser [
+	| stack |
 
 " showPos
 	Display stack of objects we're inspecting
 "
-!Browser
-showPos | cnt |
+showPos [
+	| cnt |
 	' == stack -> ' print.
 	cnt <- 0.
 	stack do: [:obj|
@@ -24,26 +17,26 @@ showPos | cnt |
 		cnt <- cnt + 1
 	].
 	'' printNl
-!
+]
 
 " ivars
 	Dump instance variables of named object
 "
-!Browser
-ivars: obj | iv |
+ivars: obj [
+	| iv |
 	iv <- obj class instanceVariables.
 	1 to: iv size do: [:idx|
 		idx print. Char tab print.
 		(iv at: idx) print. ': ' print.
 		(Object in: obj at: idx) printNl
 	]
-!
+]
 
 " run:
 	Compile and run Smalltalk expression on object
 "
-!Browser
-run: args on: obj | t cl |
+run: args on: obj [
+	| t cl |
 	" Assemble arguments into single String "
 	args do: [:arg|
 		t isNil ifTrue: [ t <- arg ]
@@ -59,13 +52,13 @@ run: args on: obj | t cl |
 		" Now clean up (remove) browse method "
 		cl removeMethod: #xxBrowse
 	]
-!
+]
 
 " on:
 	Main UI loop for browser
 "
-!Browser
-on: top | cmd done last obj args idx |
+on: top [
+	| cmd done last obj args idx |
 	stack <- Array with: top.
 	[true] whileTrue: [
 		" Show where we are and get next command "
@@ -152,4 +145,14 @@ on: top | cmd done last obj args idx |
 		" Unknown command? "
 		done ifFalse: [ ('Unknown command: ' + cmd) printNl ]
 	]
-!
+]
+].
+
+Browser class extend [
+" o:
+	Instantiate a browser on the named object
+"
+on: obj [
+	self new on: obj
+]
+].
