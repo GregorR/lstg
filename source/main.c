@@ -61,7 +61,9 @@
 
 */
 
-#include "../LittleSmalltalk.h"
+#ifdef LITTLE_SMALLTALK_IMAGE
+#include LITTLE_SMALLTALK_IMAGE_FILE
+#endif
 
 #define DefaultStaticSize 40000
 #define DefaultDynamicSize 40000
@@ -131,6 +133,10 @@ int main(int argc, char **argv)
   char           *imageFileName = NULL,
                  *p;
 
+#ifndef LITTLE_SMALLTALK_IMAGE
+  imageFileName = "LittleSmalltalk.image";
+#endif
+
   staticSize = DefaultStaticSize;
   dynamicSize = DefaultDynamicSize;
   lstDebugging = 0;
@@ -176,18 +182,22 @@ int main(int argc, char **argv)
   /*
      read in the method from the image file 
    */
+#ifdef LITTLE_SMALLTALK_IMAGE
   if(imageFileName) {
+#endif
     fp = fopen(imageFileName, "rb");
     if(!fp)
     {
       fprintf(stderr, "cannot open image file: %s\n", imageFileName);
       exit(1);
     }
+#ifdef LITTLE_SMALLTALK_IMAGE
   }
   else
   {
-    fp = fmemopen(LittleSmalltalk_image, LittleSmalltalk_image_len, "r");
+    fp = fmemopen(LITTLE_SMALLTALK_IMAGE, LITTLE_SMALLTALK_IMAGE_LEN, "r");
   }
+#endif
   if(lstDebugging)
     printf("%d objects in image\n", fileIn(fp));
   else

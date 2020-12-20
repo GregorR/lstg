@@ -4,3 +4,5 @@
 bin/
 LittleSmalltalk.image
 LittleSmalltalk.h
+lstg.image
+lstg.h

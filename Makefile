@@ -20,6 +20,7 @@ CFLAGS=-O3 -g -Wall $(CPPFLAGS)
 HOST_CFLAGS=-O3 -g -Wall
 LDFLAGS_EXTRA=
 LDFLAGS=$(LDFLAGS_EXTRA)
+HOST_LDFLAGS=
 
 
 #
@@ -69,6 +70,7 @@ ifeq (x86_64,$(UNAME_M))
 endif
 ifneq ($(UNAME_O), $(filter MinGW Msys, $(UNAME_O)))
 LDFLAGS+=-ldl
+HOST_LDFLAGS+=-ldl
 endif
 
 
@@ -78,30 +80,44 @@ endif
 
 .PHONY: all image clean
 
-all: bin/st$(EXE_EXT)
+all: bin/lstg$(EXE_EXT)
 
-bin/st$(EXE_EXT): $(SOURCES:.c=.o)
+bin/lstg$(EXE_EXT): $(SOURCES:.c=.o)
 	mkdir -p bin
 	$(CC) -o $@ $^ $(LDFLAGS)
 
+bin/st: $(SOURCES:.c=.host.o)
+	mkdir -p bin
+	$(HOST_CC) -o $@ $^ $(HOST_LDFLAGS)
+
 bin/imageBuilder: ImageBuilder/imageBuilder.c
 	mkdir -p bin
-	$(HOST_CC) -o $@ $^ $(HOST_CFLAGS) $(LDFLAGS)
+	$(HOST_CC) -o $@ $^ $(HOST_CFLAGS) $(HOST_LDFLAGS)
 
 LittleSmalltalk.image: source/imageSource.st bin/imageBuilder
-	$ ./bin/imageBuilder >imageBuilder.log
+	$ ./bin/imageBuilder
 
-LittleSmalltalk.h: LittleSmalltalk.image
+lstg.image: source/betterRepl.st bin/st LittleSmalltalk.image
+	printf 'File fileIn: '\''source/betterRepl.st'\''.\nFile image: '\''lstg.image'\''.\n' | ./bin/st -i LittleSmalltalk.image
+
+lstg.h: lstg.image
 	xxd -i $< > $@
 
-source/main.o: LittleSmalltalk.h
+source/main.o: source/main.c lstg.h
+	$(CC) -c -o $@ $< $(CFLAGS) \
+		-DLITTLE_SMALLTALK_IMAGE=lstg_image \
+		-DLITTLE_SMALLTALK_IMAGE_LEN=lstg_image_len \
+		-DLITTLE_SMALLTALK_IMAGE_FILE=\"../lstg.h\"
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
+%.host.o: %.c $(DEPS)
+	$(HOST_CC) -c -o $@ $< $(HOST_CFLAGS)
+
 clean:
 	@rm -f source/*.o ImageBuilder/*.o
-	@rm -f bin/imageBuilder LittleSmalltalk.image LittleSmalltalk.h bin/st$(EXE_EXT) imageBuilder.log
+	@rm -f bin/imageBuilder lstg.image lstg.h bin/lstg$(EXE_EXT) bin/st imageBuilder.log
 
 query-%:
 	@echo $($(*))

@@ -111,7 +111,7 @@ COMMENT ---------------------------------------------------
 COMMENT ---------- Classes of optional modules ------------
 COMMENT ---------------------------------------------------
 COMMENT --- Package: GUI
-RAWCLASS MetaGuiPrimitives Class MetaObject theInstance
+CLASS MetaGuiPrimitives Class MetaObject theInstance
 RAWCLASS GuiPrimitives MetaGuiPrimitives Object iup
 COMMENT ---------- method bodies ------------
 COMMENT -----------Object-------------------
@@ -463,48 +463,16 @@ notNil
 	^ false
 !
 METHOD Undefined
-main	| arg doRepl command |
+main	| command |
 	" initialize classes "
 	Char initialize.
 
 	self initSingletons.
 
-	" go through arguments "
-	doRepl <- true.
-        [arg <- System arg. arg notNil] whileTrue: [
-		(arg at: 1) = $-
-		ifTrue: [
-			arg = '-v' ifTrue: [ System version printNl. ^0 ]
-			(arg = '-h' or: [arg = '--help']) ifTrue: [
-				System version printNl.
-				'Use: lst [-i image] [-s size] [-d size] [-g] [-v] [-h] [input files] [-r]' printNl.
-				'Options:' printNl.
-				' -i file: Load an alternate image file.' printNl.
-				' -s size|-d size: Sets the static/dynamic GC size.' printNl.
-				' -g: Enables debugging mode.' printNl.
-				' -v|--version: Shows version message.' printNl.
-				' -h|--help: Shows this message.' printNl.
-				' -r: Enables the REPL. The REPL is activated by default if no input file is' printNl.
-				'     provided. Note that you *must* specify -r if you specify an input file' printNl.
-				'     and want a REPL, and it must come *after* the input files.' printNl.
-				^0
-			]
-			((arg = '-s' or: [arg = '-d']) or: [arg = '-i']) ifTrue: [ System arg. ]
-			arg = '-r' ifTrue: [ doRepl <- true. ]
-		]
-		ifFalse: [
-			doRepl <- false.
-			File fileIn: arg.
-		].
-	].
-
 	" main execution loop "
-	doRepl ifTrue: [
-		System version printNl.
-		[ '-> ' print. command <- String input. command notNil ]
-			whileTrue: [ command isEmpty
-				ifFalse: [ command doIt printNl ] ]
-	]
+	[ '-> ' print. command <- String input. command notNil ]
+		whileTrue: [ command isEmpty
+			ifFalse: [ command doIt printNl ] ]
 !
 METHOD Undefined
 initSingletons
@@ -2962,7 +2930,7 @@ readBlockTemporaries
 		ifFalse: [ self error: 'invalid block argument list ']
 !
 METHOD Parser
-readCascade: base   | node arg list |
+readCascade: base   | node list |
 	node <- self keywordContinuation: base.
 	tokenType = $;
 		ifTrue: [ node <- (CascadeNode at: lineNum) head: node.
