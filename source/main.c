@@ -128,7 +128,8 @@ int main(int argc, char **argv)
                   staticSize,
                   dynamicSize;
   FILE           *fp;
-  char           *p;
+  char           *imageFileName = NULL,
+                 *p;
 
   staticSize = DefaultStaticSize;
   dynamicSize = DefaultDynamicSize;
@@ -146,7 +147,11 @@ int main(int argc, char **argv)
    */
   for(i = 1; i < argc; i++)
   {
-    if(strcmp(argv[i], "-s") == 0)
+    if(strcmp(argv[i], "-i") == 0)
+    {
+      imageFileName = argv[++i];
+    }
+    else if(strcmp(argv[i], "-s") == 0)
     {
       staticSize = atoi(argv[++i]);
     }
@@ -158,6 +163,10 @@ int main(int argc, char **argv)
     {
       lstDebugging = 1;
     }
+    else if (argv[i][0] != '-')
+    {
+      break;
+    }
   }
   lstArgv = argv;
   lstArgc = argc;
@@ -167,8 +176,22 @@ int main(int argc, char **argv)
   /*
      read in the method from the image file 
    */
-  fp = fmemopen(LittleSmalltalk_image, LittleSmalltalk_image_len, "r");
-  fileIn(fp);
+  if(imageFileName) {
+    fp = fopen(imageFileName, "rb");
+    if(!fp)
+    {
+      fprintf(stderr, "cannot open image file: %s\n", imageFileName);
+      exit(1);
+    }
+  }
+  else
+  {
+    fp = fmemopen(LittleSmalltalk_image, LittleSmalltalk_image_len, "r");
+  }
+  if(lstDebugging)
+    printf("%d objects in image\n", fileIn(fp));
+  else
+    fileIn(fp);
   fclose(fp);
 
   lstPrimitivesInit();

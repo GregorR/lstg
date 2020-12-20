@@ -330,14 +330,15 @@ subclass: nm variables: v
 	^ self subclass: nm variables: v classVariables: (Array new: 0)
 !
 METHOD Class
-subclass: nm variables: v classVariables: cv | meta |
+subclass: nm variables: v classVariables: cv | meta c |
 	meta <- Class new name: ('Meta' + nm asString) asSymbol
 		parent: self class
 		variables: cv.
-	globals at: nm put: ( meta new name: nm
+	c <- ( meta new name: nm
 		parent: self
 		variables: v ).
-	^ 'subclass created: ' + nm printString
+	globals at: nm put: c.
+	^ c
 !
 METHOD Class
 addMethod	| text |
@@ -462,29 +463,44 @@ notNil
 	^ false
 !
 METHOD Undefined
-main	| arg hadFile command |
+main	| arg doRepl command |
 	" initialize classes "
 	Char initialize.
 
 	self initSingletons.
 
 	" go through arguments "
-	hadFile <- false.
+	doRepl <- true.
         [arg <- System arg. arg notNil] whileTrue: [
 		(arg at: 1) = $-
 		ifTrue: [
-			arg = '-v' ifTrue: [ System version printNl. hadFile <- true. ]
-			(arg = '-s' or: [arg = '-d']) ifTrue: [ System arg. ]
-			arg = '-r' ifTrue: [ hadFile <- false. ]
+			arg = '-v' ifTrue: [ System version printNl. ^0 ]
+			(arg = '-h' or: [arg = '--help']) ifTrue: [
+				System version printNl.
+				'Use: lst [-i image] [-s size] [-d size] [-g] [-v] [-h] [input files] [-r]' printNl.
+				'Options:' printNl.
+				' -i file: Load an alternate image file.' printNl.
+				' -s size|-d size: Sets the static/dynamic GC size.' printNl.
+				' -g: Enables debugging mode.' printNl.
+				' -v|--version: Shows version message.' printNl.
+				' -h|--help: Shows this message.' printNl.
+				' -r: Enables the REPL. The REPL is activated by default if no input file is' printNl.
+				'     provided. Note that you *must* specify -r if you specify an input file' printNl.
+				'     and want a REPL, and it must come *after* the input files.' printNl.
+				^0
+			]
+			((arg = '-s' or: [arg = '-d']) or: [arg = '-i']) ifTrue: [ System arg. ]
+			arg = '-r' ifTrue: [ doRepl <- true. ]
 		]
 		ifFalse: [
-			hadFile <- true.
+			doRepl <- false.
 			File fileIn: arg.
 		].
 	].
 
 	" main execution loop "
-	hadFile ifFalse: [
+	doRepl ifTrue: [
+		System version printNl.
 		[ '-> ' print. command <- String input. command notNil ]
 			whileTrue: [ command isEmpty
 				ifFalse: [ command doIt printNl ] ]
@@ -2504,17 +2520,9 @@ readLine	| value  c nl |
 !
 METHOD File
 fileInDispatch: cmd | c |
-	" Immediate execute "
+	" Immediate execte "
 	cmd = $+ ifTrue: [
-		self readLine doIt.
-		^ self
-	].
-
-        " Immediate execute method "
-        cmd = $m ifTrue: [
-		Object subclass: #Main.
-		self mainCommand
-		(globals at: #Main) main.
+		self readLine doIt printNl.
 		^ self
 	].
 
@@ -2560,16 +2568,6 @@ methodCommand: classCmd | name aClass text line |
 	classCmd
 		ifTrue: [ aClass addMethod: text ]
 		ifFalse: [ aClass class addMethod: text ]
-!
-METHOD File
-mainCommand | mainClass text line |
-        mainClass <- globals at: #Main.
-        text <- 'main'.
-        [ line <- self readLine.
-          line isNil ifTrue: [ ^ self error:
-                'unexpected end of input during fileIn' ].
-          line ~= '!'] whileTrue: [ text <- text + line + String newline ].
-        mainClass class addMethod: text.
 !
 METHOD File
 at: idx
@@ -2631,7 +2629,7 @@ parse: c with: encoderClass	| encoder meth name |
 		name print. '... ' print
 	].
 	encoder name: name.
-	self readMethodVariables.
+	self readMethodVariables isNil ifFalse: [self nextLex].
 	self readBody compile: encoder block: false.
 	meth <- encoder method: maxTemps class: c text: text.
 	meth args: argNames inst: instNames temp: tempNames.
@@ -2772,8 +2770,8 @@ readMethodVariables
 	[ self tokenIsName ]
 		whileTrue: [ self addTempName: token asSymbol. self nextLex ].
 	tokenType = $|
-		ifTrue: [ self nextLex ]
-		ifFalse: [ self error: 'illegal method variable declaration']
+		ifFalse: [ self error: 'illegal method variable declaration'].
+	^tempNames
 !
 METHOD Parser
 addTempName: name
@@ -2964,7 +2962,7 @@ readBlockTemporaries
 		ifFalse: [ self error: 'invalid block argument list ']
 !
 METHOD Parser
-readCascade: base   | node list |
+readCascade: base   | node arg list |
 	node <- self keywordContinuation: base.
 	tokenType = $;
 		ifTrue: [ node <- (CascadeNode at: lineNum) head: node.
@@ -2979,7 +2977,7 @@ readCascade: base   | node list |
 METHOD Parser
 keywordContinuation: base  | receiver name args lnum |
 	receiver <- self binaryContinuation: base.
-	self tokenIsKeyword
+	(self tokenIsKeyword or: [tokenType = $[])
 		ifFalse: [ ^ receiver ].
 	name <- ''.
 	args <- List new.
@@ -2988,6 +2986,13 @@ keywordContinuation: base  | receiver name args lnum |
 		whileTrue: [ name <- name + token. self nextLex.
 			args add:
 				(self binaryContinuation: self readTerm) ].
+	tokenType = $[
+		ifTrue: [
+			" Extension shorthand "
+			name <- name + 'extend:'.
+			args add: ((LiteralNode at: lineNum) value: self readStringBlock).
+		].
+
 	^ (MessageNode at: lnum) receiver:
 		receiver name: name asSymbol arguments: args
 !

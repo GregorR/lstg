@@ -47,7 +47,7 @@
 
 #define defaultImageName "LittleSmalltalk.image"
 FILE           *fin;
-char            inputBuffer[1500],
+char            inputBuffer[4096],
                *p,
                 tokenBuffer[80];
 
