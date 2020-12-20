@@ -149,7 +149,7 @@ readStringBlock | begin ln nesting nested push pop c i |
 		c = $' ifTrue: [
 			" Search for string end "
 			i <- i + 1.
-			[i <= text size and: [(text at: i) != $']] whileTrue: [
+			[i <= text size and: [(text at: i) ~= $']] whileTrue: [
 				i <- i + 1.
 			].
 		].
@@ -157,7 +157,7 @@ readStringBlock | begin ln nesting nested push pop c i |
 		c = $" ifTrue: [
 			" Just search for the comment end "
 			i <- i + 1.
-			[i <= text size and: [(text at: i) != $"]] whileTrue: [
+			[i <= text size and: [(text at: i) ~= $"]] whileTrue: [
 				i <- i + 1.
 			].
 		].
@@ -189,7 +189,9 @@ readStringBlock | begin ln nesting nested push pop c i |
 
 " Parse a blockalike that contains a class declaration "
 !Parser
-parseClassBlock: classVars | iv ms cms isClassMethod mn mna mb beforeName afterName ln p meth node |
+parseClassBlock: inClassVars | classVars iv ms cms isClassMethod mn mna mb beforeName afterName ln p meth node |
+        classVars <- inClassVars.
+        classVars isNil ifTrue: [classVars <- (Array new: 0)].
 	iv <- classVars + instNames.
 	ms <- List new.
 	cms <- List new.
@@ -279,39 +281,91 @@ setErrBlock: to
 	errBlock <- to
 !
 
-+Object subclass: #REPL variables: (Array new: 0) classVariables: #(variables inst stepper)
+" The REPL itself "
++Object subclass: #REPL variables: (Array new: 0) classVariables: #(variables inst newInst stepper transferer)
 
 =REPL
-repl | cmd line |
-	variables <- (Array new: 0).
-	Object subclass: #REPLInstance.
-	inst <- (globals at: #REPLInstance) new.
-	stepper <- Undefined parseMethod: 'step ^REPL inst step'.
-
-	cmd <- ''.
-	'  -> ' print.
-	[line <- String input. line isNil] whileFalse: [
-		cmd <- (cmd + line + (String newline)) leftStrip.
-		cmd <- (self replCmd: cmd) leftStrip.
-		cmd = ''
-		ifTrue: [
-			'  -> ' print.
-		]
-		ifFalse: [
-			'...> ' print.
-		].
-	]
+repl
+	^ self repl: nil
 !
 
 =REPL
-replCmd: cmd | prefix ncmd |
+main | arg doRepl command |
+	" go through arguments "
+	doRepl <- true.
+	[arg <- System arg. arg notNil] whileTrue: [
+		(arg at: 1) = $-
+		ifTrue: [
+			arg = '-v' ifTrue: [ System version printNl. ^0 ].
+			(arg = '-h' or: [arg = '--help']) ifTrue: [
+				System version printNl.
+				'Use: lst [-i image] [-s size] [-d size] [-g] [-v] [-h] [input files] [-r]' printNl.
+				'Options:' printNl.
+				' -i file: Load an alternate image file.' printNl.
+				' -s size|-d size: Sets the static/dynamic GC size.' printNl.
+				' -g: Enables debugging mode.' printNl.
+				' -v|--version: Shows version message.' printNl.
+				' -h|--help: Shows this message.' printNl.
+				' -r: Enables the REPL. The REPL is activated by default if no input file is' printNl.
+				'     provided. Note that you *must* specify -r if you specify an input file' printNl.
+				'     and want a REPL, and it must come *after* the input files.' printNl.
+				^0
+			].
+			((arg = '-s' or: [arg = '-d']) or: [arg = '-i']) ifTrue: [ System arg. ].
+			arg = '-r' ifTrue: [ doRepl <- true. ]
+		]
+		ifFalse: [
+			doRepl <- false.
+			File fileInREPL: arg.
+		].
+	].
+
+	doRepl ifTrue: [ self repl. ].
+!
+
+=REPL
+repl: file | cmd readLine handler line |
+	variables <- (Array new: 0).
+	inst <- (Object subclass: #REPLInstance) new.
+	stepper <- Undefined parseMethod: 'step ^REPL inst step'.
+	transferer <- Undefined parseMethod: 'rstep ^REPL transfer'.
+
+	cmd <- ''.
+	file isNil
+	ifTrue: [
+		'  -> ' print.
+		readLine <- [line <- String input].
+	]
+	ifFalse: [
+		readLine <- [line <- file readLine].
+	].
+
+	handler <- [
+		cmd <- (cmd + line + (String newline)) leftStrip.
+		cmd <- (self replCmd: cmd andPrint: file isNil) leftStrip.
+		cmd = ''
+		ifTrue: [
+			file isNil ifTrue: ['  -> ' print.].
+		]
+		ifFalse: [
+			file isNil ifTrue: ['...> ' print.].
+		].
+	].
+
+	[readLine value. line isNil] whileFalse: handler.
+	line <- '.'.
+	handler value.
+!
+
+=REPL
+replCmd: cmd andPrint: doPrint | prefix ncmd |
 	cmd = '' ifTrue: [^cmd].
 
 	prefix <- cmd at: 1.
 
 	prefix = $| ifTrue: [
 		ncmd <- self replVars: cmd.
-		^self replCmd: ncmd leftStrip.
+		^self replCmd: ncmd leftStrip andPrint: doPrint.
 	].
 
 	prefix = $. ifTrue: [
@@ -319,11 +373,11 @@ replCmd: cmd | prefix ncmd |
 		^cmd from: 2.
 	].
 
-	^self replCode: cmd
+	^self replCode: cmd andPrint: doPrint
 !
 
 =REPL
-replCode: icmd | cmd p stmt text |
+replCode: icmd andPrint: doPrint | cmd p stmt text res |
 	cmd <- icmd.
 	p <- Parser new text: cmd instanceVars: (Array new: 0).
 	[stmt <- p readStringBlock. stmt isNil] whileFalse: [
@@ -331,7 +385,8 @@ replCode: icmd | cmd p stmt text |
 
 		text <- 'step ^' + stmt.
 		((globals at: #REPLInstance) addMethod: text) isNil ifFalse: [
-			(Context new perform: stepper withArguments: (Array new: 0)) printNl.
+			res <- (Context new perform: stepper withArguments: (Array new: 0)).
+			doPrint ifTrue: [res printNl.].
 			(globals at: #REPLInstance) removeMethod: #step.
 		].
 	].
@@ -339,16 +394,36 @@ replCode: icmd | cmd p stmt text |
 !
 
 =REPL
-replVars: cmd | p newVars |
+replVars: cmd | p c newC newVars val |
+	" Get the new variables "
 	p <- Parser new text: cmd instanceVars: (Array new: 0).
 	p setErrBlock: [^''].
 	p nextLex.
 	newVars <- p readMethodVariables.
 	p nextLex.
-	variables <- variables + newVars.
-	Object subclass: #REPLInstance variables: variables.
-	inst <- (globals at: #REPLInstance) new.
+	newVars <- variables + newVars.
+
+	" Make the new instance type "
+	c <- globals at: #REPLInstance.
+	newC <- Object subclass: #REPLInstance variables: newVars.
+	newInst <- newC new.
+
+	" Copy over the variables "
+	variables do: [:var|
+		var <- var asString.
+		c addMethod: 'getv ^' + var.
+		newC addMethod: 'setv: x ' + var + ' <- x'.
+		(Context new perform: transferer withArguments: (Array new: 0)).
+		newC removeMethod: #setv:.
+	].
+	variables <- newVars.
+	inst <- newInst.
 	^p rest
+!
+
+=REPL
+transfer
+	newInst setv: inst getv.
 !
 
 =REPL
@@ -356,4 +431,19 @@ inst
 	^inst
 !
 
-+REPL repl
+" And a fileIn for it "
+=File
+fileInREPL: nm | file |
+	file <- self openRead: nm.
+	file opened ifFalse: [ ^self error: 'cannot open file ' + nm ].
+	file fileInREPL.
+	file close.
+	^'file in completed'
+!
+
+!File
+fileInREPL
+	^REPL repl: self
+!
+
++REPL main
