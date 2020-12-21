@@ -384,6 +384,41 @@ struct object  *primitive(int primitiveNumber, struct object *args,
       returnedValue = lstDebugging ? trueObject : falseObject;
       break;
 
+    case 116: /* read entire file */
+    {
+      char *buf;
+      size_t sz;
+      ssize_t used, rd;
+      i = integerValue(args->data[0]);
+      fprintf(stderr, "i = %d\n", i);
+      buf = malloc(4096);
+      if (!buf)
+      {
+        perror("malloc");
+        exit(1);
+      }
+      sz = 4096;
+      used = 0;
+      while ((rd = read(i, buf + used, sz - used)) > 0)
+      {
+        used += rd;
+        if (used >= sz - 1)
+        {
+          sz *= 2;
+          buf = realloc(buf, sz);
+          if (!buf)
+          {
+            perror("realloc");
+            exit(1);
+          }
+        }
+      }
+      buf[used] = 0;
+      returnedValue = lstNewString(buf);
+      free(buf);
+      break;
+    }
+
 #if defined(LST_USE_FFI)
       /* FFI (Foreign Function Interface) primitives */
     case 230:

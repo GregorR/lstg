@@ -1,9 +1,19 @@
-" Convenience function "
+" Convenience functions "
 !String
-leftStrip | i |
+leftStripCt | i |
 	i <- 1.
 	[i <= self size and: [(self at: i) isBlank]] whileTrue: [i <- i + 1.].
-	^self from: i.
+	^i.
+!
+
+!String
+leftStrip
+	^self from: self leftStripCt.
+!
+
+!String
+occurrencesOf: aChar
+	^(self select: [:c| c = aChar]) size
 !
 
 " Class extendability "
@@ -17,7 +27,7 @@ for: x
 
 !ClassExtension
 extend: str | p node |
-	p <- Parser new fromExtendBlock: str instanceVars: class variables.
+	p <- Parser new fromExtendBlock: str instanceVars: class instanceVariables.
 	node <- p parseClassBlock: class class variables.
 	node classMethods do: [:m|
 		class class addMethod: m text fromFile: m file atLine: m line.
@@ -173,8 +183,8 @@ readStringBlock | begin ln nesting nested push pop c i |
 " Parse a blockalike that contains a class declaration "
 !Parser
 parseClassBlock: inClassVars | classVars iv ms cms isClassMethod mn mna mb beforeName afterName ln p meth node |
-        classVars <- inClassVars.
-        classVars isNil ifTrue: [classVars <- (Array new: 0)].
+	classVars <- inClassVars.
+	classVars isNil ifTrue: [classVars <- (Array new: 0)].
 	iv <- classVars + instNames.
 	ms <- List new.
 	cms <- List new.
@@ -267,7 +277,7 @@ setErrBlock: to
 !
 
 " The REPL itself "
-+Object subclass: #REPL variables: #(variables inst newInst transferer)
++Object subclass: #REPL variables: #(variables fileName cmd lineNum inst newInst transferer)
 +Object subclass: #REPLFileReader variables: #(file)
 
 =REPLFileReader
@@ -295,8 +305,8 @@ repl
 	^ self repl: nil
 !
 
-!REPL
-main | fileInMeth arg doRepl command |
+=REPL
+main | fileInMeth arg doRepl rf command |
 	fileInMeth <- Undefined parseMethod: 'fileIn: x ^x fileIn' fromFile: 'REPL' atLine: 1.
 
 	" go through arguments "
@@ -331,41 +341,54 @@ main | fileInMeth arg doRepl command |
 
 			arg = '-r' ifTrue: [
 				System version printNl.
-				self repl.
+				self new repl.
 			].
 		]
 		ifFalse: [
 			doRepl <- false.
-			inst <- REPLFileReader new withFile: arg.
-			Context new perform: fileInMeth withArguments: (Array with: nil with: inst).
+			rf <- REPLFileReader new withFile: arg.
+			Context new perform: fileInMeth withArguments: (Array with: nil with: rf).
 		].
 	].
 
 	doRepl ifTrue: [
 		System version printNl.
-		self repl.
+		self new repl.
 	].
 !
 
 !REPL
-repl: file | cmd readLine handler line |
+repl: file | readLine handler line i |
+	" Initial state "
+	file isNil
+	ifTrue: [
+		fileName <- '(input)'.
+		readLine <- [line <- String input].
+	]
+	ifFalse: [
+		fileName <- file name.
+		readLine <- [line <- file readFile].
+	].
+	lineNum <- 1.
+	cmd <- ''.
+
 	variables <- (Array new: 0).
 	inst <- (Object subclass: #REPLInstance) new.
 	transferer <- Undefined parseMethod: 'transfer: x ^x transfer' fromFile: 'REPL' atLine: 1.
 
-	cmd <- ''.
-	file isNil
-	ifTrue: [
+	" Initial prompt "
+	file isNil ifTrue: [
 		'  -> ' print.
-		readLine <- [line <- String input].
-	]
-	ifFalse: [
-		readLine <- [line <- file readLine].
 	].
 
+	" Main handler "
 	handler <- [
-		cmd <- (cmd + line + (String newline)) leftStrip.
-		cmd <- (self replCmd: cmd andPrint: file isNil) leftStrip.
+		cmd <- cmd + line + String newline.
+
+		" Run command(s) "
+		self replCmdAndPrint: file isNil.
+
+		" Prompt "
 		cmd = ''
 		ifTrue: [
 			file isNil ifTrue: ['  -> ' print.].
@@ -381,50 +404,67 @@ repl: file | cmd readLine handler line |
 !
 
 !REPL
-replCmd: cmd andPrint: doPrint | prefix ncmd |
-	cmd = '' ifTrue: [^cmd].
+trimCmd: i
+	lineNum <- lineNum + ((cmd from: 1 to: i-1) occurrencesOf: Char newline).
+	cmd <- cmd from: i.
+!
+
+!REPL
+leftStripCmd | i |
+	self trimCmd: cmd leftStripCt.
+!
+
+!REPL
+replCmdAndPrint: doPrint | prefix i |
+	self leftStripCmd.
+
+	cmd = '' ifTrue: [^self].
 
 	prefix <- cmd at: 1.
 
 	prefix = $| ifTrue: [
-		ncmd <- self replVars: cmd.
-		^self replCmd: ncmd leftStrip andPrint: doPrint.
+		self replVars: cmd.
+		^self replCmdAndPrint: doPrint
 	].
 
 	prefix = $. ifTrue: [
 		" Empty statement "
-		^cmd from: 2.
+		cmd <- cmd from: 2.
+		^self replCmdAndPrint: doPrint
 	].
 
-	^self replCode: cmd andPrint: doPrint
+	self replCodeAndPrint: doPrint.
+	^self replCmdAndPrint: doPrint
 !
 
 !REPL
-replCode: icmd andPrint: doPrint | cmd p stmt text meth res |
-	cmd <- icmd.
-	p <- Parser new fileName: '(FIXME)' lineNum: 1 text: cmd instanceVars: (Array new: 0).
-	[stmt <- p readStringBlock. stmt isNil] whileFalse: [
-		cmd <- p rest from: 2.
+replCodeAndPrint: doPrint | p ln stmt text meth res |
+	p <- Parser new fileName: fileName lineNum: lineNum text: cmd instanceVars: (Array new: 0).
+	[
+		ln <- lineNum.
+		stmt <- p readStringBlock.
+		stmt isNil
+	] whileFalse: [
+		self trimCmd: p index.
 
 		text <- 'step ^' + stmt.
-		meth <- (globals at: #REPLInstance) addMethod: text fromFile: '(input)' atLine: 1.
+		meth <- (globals at: #REPLInstance) addMethod: text fromFile: fileName atLine: ln.
 		meth isNil ifFalse: [
 			res <- (Context new perform: meth withArguments: (Array with: inst)).
 			doPrint ifTrue: [res printNl.].
 			(globals at: #REPLInstance) removeMethod: #step.
 		].
 	].
-	^cmd
 !
 
 !REPL
-replVars: cmd | p c newC newVars val |
+replVars | p c newC newVars val |
 	" Get the new variables "
-	p <- Parser new fileName: '(FIXME)' lineNum: 1 text: cmd instanceVars: (Array new: 0).
+	p <- Parser new fileName: fileName lineNum: lineNum text: cmd instanceVars: (Array new: 0).
 	p setErrBlock: [^''].
 	p nextLex.
 	newVars <- p readMethodVariables.
-	p nextLex.
+	self trimCmd: p index.
 	newVars <- variables + newVars.
 
 	" Make the new instance type "
@@ -442,7 +482,6 @@ replVars: cmd | p c newC newVars val |
 	].
 	variables <- newVars.
 	inst <- newInst.
-	^p rest
 !
 
 !REPL
@@ -460,7 +499,7 @@ inst
 main
 	Char initialize.
 	self initSingletons.
-	REPL new main.
+	REPL main.
 !
 
-+REPL new main
++REPL main

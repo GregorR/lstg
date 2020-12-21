@@ -2520,6 +2520,11 @@ readLine	| value  c nl |
 	^ value
 !
 METHOD File
+readFile
+	fileID printNl.
+	<116 fileID>
+!
+METHOD File
 fileInDispatch: cmd | c |
 	" Immediate execte "
 	cmd = $+ ifTrue: [
@@ -3055,6 +3060,10 @@ unaryContinuation: base | receiver lnum |
 					arguments: (List new).
 				self nextLex ].
 	^ receiver
+!
+METHOD Parser
+index
+	^ index
 !
 METHOD MetaParserNode
 new
