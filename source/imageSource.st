@@ -319,7 +319,7 @@ editMethod: nm	| meth text |
 		ifAbsent: [ ^ self error: 'no such method'].
 	text <- meth text edit.
 	(self question: 'compile method?')
-		ifTrue: [ self addMethod: text fromFile: '(input)' atLine: 1 ]
+		ifTrue: [ self addMethod: text ]
 !
 METHOD Class
 subclass: nm
@@ -345,7 +345,7 @@ METHOD Class
 addMethod	| text |
 	text <- ' ' edit.
 	(self question: 'compile method?')
-		ifTrue: [ self addMethod: text fromFile: '(input)' atLine: 1 ]
+		ifTrue: [ self addMethod: text ]
 !
 METHOD Class
 addMethod: text fromFile: fileName atLine: lineNum | meth |
@@ -357,6 +357,10 @@ addMethod: text fromFile: fileName atLine: lineNum | meth |
 		^ meth
 	].
 	^ nil
+!
+METHOD Class
+addMethod: text
+	^ self addMethod: text fromFile: '(input)' atLine: 1
 !
 METHOD Class
 removeMethod: methName
@@ -377,6 +381,12 @@ parseMethod: text fromFile: fileName atLine: lineNum
 	^ (Parser new
 		fileName: fileName
 		lineNum: lineNum
+		text: text
+		instanceVars: self instanceVariables) parse: self
+!
+METHOD Class
+parseMethod: text
+	^ (Parser new
 		text: text
 		instanceVars: self instanceVariables) parse: self
 !
@@ -1395,7 +1405,7 @@ asSymbol
 !
 METHOD String
 doIt	| meth |
-	meth <- Undefined parseMethod: 'doItCommand ^' + self fromFile: '(input)' atLine: 1.
+	meth <- Undefined parseMethod: 'doItCommand ^' + self.
 	^ meth notNil
 		ifTrue: [ ^ Context new
 			  perform: meth withArguments: (Array new: 1) ]
@@ -2628,6 +2638,10 @@ fileName: fnString lineNum: aNumber text: aString instanceVars: anArray
 	instNames <- anArray.
 	tempNames <- Array new: 0.
 	maxTemps <- 0
+!
+METHOD Parser
+text: aString instanceVars: anArray
+	^ self fileName: '(input)' lineNum: 1 text: aString instanceVars: anArray
 !
 METHOD Parser
 fromExtendBlock: aString instanceVars: anArray | line c |
