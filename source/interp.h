@@ -10,6 +10,7 @@
  * Copyright (C) 1987-2005 by Timothy A. Budd
  * Copyright (C) 2007 by Charles R. Childers
  * Copyright (C) 2005-2007 by Danny Reinhold
+ * Copyright (C) 2020 by Gregor Richards
  * 
  * ============================================================================
  * This license applies to the virtual machine and to the initial image of 
