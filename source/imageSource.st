@@ -82,11 +82,11 @@ RAWCLASS SmallInt   MetaSmallInt Number
 CLASS Link          Object            value next
 CLASS Node          Object            value left right
 CLASS Interval      Collection        low high step
-CLASS File          Object            fileID
+CLASS File          Object            fileID fileName lineNum
 CLASS Association	Magnitude	key value
 CLASS Tree		Collection	root
 COMMENT ---------- Classes having to do with parsing ------------
-CLASS Parser Object text index tokenType token argNames tempNames instNames maxTemps errBlock lineNum
+CLASS Parser Object text index tokenType token argNames tempNames instNames maxTemps errBlock fileName lineNum
 CLASS ParserNode Object lineNum
 CLASS Encoder Object name byteCodes index literals stackSize maxStack
 CLASS BodyNode ParserNode statements
@@ -318,7 +318,7 @@ editMethod: nm	| meth text |
 		ifAbsent: [ ^ self error: 'no such method'].
 	text <- meth text edit.
 	(self question: 'compile method?')
-		ifTrue: [ self addMethod: text ]
+		ifTrue: [ self addMethod: text fromFile: '(input)' atLine: 1 ]
 !
 METHOD Class
 subclass: nm
@@ -344,11 +344,11 @@ METHOD Class
 addMethod	| text |
 	text <- ' ' edit.
 	(self question: 'compile method?')
-		ifTrue: [ self addMethod: text ]
+		ifTrue: [ self addMethod: text fromFile: '(input)' atLine: 1 ]
 !
 METHOD Class
-addMethod: text | meth |
-	meth <- self parseMethod: text.
+addMethod: text fromFile: fileName atLine: lineNum | meth |
+	meth <- self parseMethod: text fromFile: fileName atLine: lineNum.
 	meth notNil ifTrue: [
 		methods at: meth name put: meth.
 		Method flushCache.
@@ -372,9 +372,12 @@ view: methodName
 			text print
 !
 METHOD Class
-parseMethod: text
+parseMethod: text fromFile: fileName atLine: lineNum
 	^ (Parser new
-		text: text instanceVars: self instanceVariables) parse: self
+		fileName: fileName
+		lineNum: lineNum
+		text: text
+		instanceVars: self instanceVariables) parse: self
 !
 METHOD Class
 new
@@ -617,12 +620,12 @@ METHOD Context
 backtrace | narg |
 		" backtrace context calls "
 	narg <- 0.
-	method name print.
-	' ' print.
 	method file print.
 	':' print.
 	method line print.
-	' (' print.
+	': ' print.
+	method name print.
+	'(' print.
 	arguments do: [:a |
 		(narg > 0) ifTrue: [ ', ' print ].
 		a class print.
@@ -670,16 +673,16 @@ whileFalse: aBlock
 METHOD Block
 backtrace | narg |
 		" backtrace context calls "
-	'block from ' print.
-	method name print.
-	' ' print.
+	narg <- 0.
 	method file print.
 	':' print.
 	line print.
+	': ' print.
+	'block from ' print.
+	method name print.
 	' (' print.
-	narg <- 0.
 	arguments do: [:a |
-		(narg > 0) ifTrue: [', ' print ].
+		(narg > 0) ifTrue: [ ', ' print ].
 		a class print.
 		narg <- narg+1
 	].
@@ -750,7 +753,8 @@ METHOD Symbol
 !
 COMMENT -----------Method--------------
 METHOD MetaMethod
-name: n byteCodes: b literals: l stackSize: s temporarySize: ts class: c text: t
+name: n byteCodes: b literals: l stackSize: s temporarySize: ts class: c
+fileName: fileName lineNum: lineNum text: t
 	| newMethod |
 	newMethod <- self new.
 	super in: newMethod at: 1 put: n.
@@ -760,6 +764,8 @@ name: n byteCodes: b literals: l stackSize: s temporarySize: ts class: c text: t
 	super in: newMethod at: 5 put: ts.
 	super in: newMethod at: 6 put: c.
 	super in: newMethod at: 7 put: t.
+	super in: newMethod at: 8 put: fileName.
+	super in: newMethod at: 9 put: lineNum.
 	^ newMethod
 !
 METHOD MetaMethod
@@ -1388,7 +1394,7 @@ asSymbol
 !
 METHOD String
 doIt	| meth |
-	meth <- Undefined parseMethod: 'doItCommand ^' + self.
+	meth <- Undefined parseMethod: 'doItCommand ^' + self fromFile: '(input)' atLine: 1.
 	^ meth notNil
 		ifTrue: [ ^ Context new
 			  perform: meth withArguments: (Array new: 1) ]
@@ -2413,21 +2419,21 @@ doOpen: nm mode: mode
 METHOD MetaFile
 openRead: nm
 		" open new file for reading "
-	^ self in: (self new) at: 1 put: (self doOpen: nm mode: 'r')
+	^ self new withName: nm withFileID: (self doOpen: nm mode: 'r')
 !
 METHOD MetaFile
 openWrite: nm
 		" open new file for writing "
-	^ self in: (self new) at: 1 put: (self doOpen: nm mode: 'w')
+	^ self new withName: nm withFileID: (self doOpen: nm mode: 'w')
 !
 METHOD MetaFile
 open: nm mode: mode
-  ^self in: (self new) at: 1 put: (self doOpen: nm mode: mode)
+	^ self new withName: nm withFileID: (self doOpen: nm mode: mode)
 !
 METHOD MetaFile
 openUpdate: nm
 		" open new file for reading and writing "
-	^ self in: (self new) at: 1 put: (self doOpen: nm mode: 'r+')
+	^ self new withName: nm withFileID: (self doOpen: nm mode: 'r+')
 !
 METHOD MetaFile
 fileIn: nm | file |
@@ -2444,6 +2450,14 @@ image: nm | file |
 	file opened ifFalse: [ ^ self error: 'cannot open file ' + nm ].
 	file writeImage.
 	file close
+!
+METHOD File
+withName: nm withFileID: fid
+	fileID isNil ifFalse: [ ^ self error: 'already opened' ].
+	fileName <- nm.
+	fileID <- fid.
+	lineNum <- 1.
+	^ self
 !
 METHOD File
 opened
@@ -2487,6 +2501,7 @@ METHOD File
 readChar	| c |
 		" read a single character from a file "
 	c <- self doRead.
+	c = 10 ifTrue: [ lineNum <- lineNum + 1 ].
 	c notNil ifTrue: [ ^ Char new: c ].
 	^ c
 !
@@ -2501,6 +2516,7 @@ readLine	| value  c nl |
 	  c <- Char new: c.
 	  c ~= nl ] whileTrue:
 		[ value <- value + c asString ].
+	lineNum <- lineNum + 1.
 	^ value
 !
 METHOD File
@@ -2541,18 +2557,19 @@ fileIn		| cmd |
 	]
 !
 METHOD File
-methodCommand: classCmd | name aClass text line |
+methodCommand: classCmd | name aClass text line startLineNum |
 	name <- self readLine asSymbol.
 	aClass <- globals at: name ifAbsent: [ ^ self error:
 		'unknown class name in file-in: ' + name printString ].
 	text <- ''.
+	startLineNum <- lineNum.
 	[ line <- self readLine.
 	  line isNil ifTrue: [ ^ self error:
 		'unexpected end of input during fileIn' ].
 	  line ~= '!'] whileTrue: [ text <- text + line + String newline ].
 	classCmd
-		ifTrue: [ aClass addMethod: text ]
-		ifFalse: [ aClass class addMethod: text ]
+		ifTrue: [ aClass addMethod: text fromFile: fileName atLine: startLineNum ]
+		ifFalse: [ aClass class addMethod: text fromFile: fileName atLine: startLineNum ]
 !
 METHOD File
 at: idx
@@ -2590,12 +2607,17 @@ METHOD File
 newline
 	^ self write: (String newline)
 !
+METHOD File
+name
+	^ fileName
+!
 COMMENT --------------parser methods-----------------
 METHOD Parser
-text: aString instanceVars: anArray
+fileName: fnString lineNum: aNumber text: aString instanceVars: anArray
+	fileName <- fnString.
+	lineNum <- aNumber.
 	text <- aString.
 	index <- 1.
-	lineNum <- 1.
 	argNames <- Array new: 1.
 	argNames at: 1 put: #self.
 	instNames <- anArray.
@@ -2603,8 +2625,31 @@ text: aString instanceVars: anArray
 	maxTemps <- 0
 !
 METHOD Parser
-parse: c with: encoderClass	| encoder meth name |
+fromExtendBlock: aString instanceVars: anArray | line c |
+	" Extend blocks have the filename on a line, then the line number on a "
+	" line, then the actual text of the block "
+	self fileName: '' lineNum: 1 text: aString instanceVars: anArray.
+
+	" Read the file name "
+	line <- ''.
+	c <- self currentChar.
+	[ c = Char newline ] whileFalse: [
+		line <- line + c asString.
+		c <- self nextChar.
+	].
+	fileName <- line.
+
+	" And the line number "
+	line <- ''.
+	[ c <- self nextChar. c = Char newline ] whileFalse: [
+		line <- line + c asString.
+	].
+	lineNum <- line asNumber.
+!
+METHOD Parser
+parse: c with: encoderClass	| encoder meth name startLineNum |
 	" note -- must call text:instanceVars: first "
+	startLineNum <- lineNum.
 	errBlock <- [ ^ nil ].
 	self nextLex.
 	encoder <- encoderClass new.
@@ -2616,7 +2661,8 @@ parse: c with: encoderClass	| encoder meth name |
 	encoder name: name.
 	self readMethodVariables isNil ifFalse: [self nextLex].
 	self readBody compile: encoder block: false.
-	meth <- encoder method: maxTemps class: c text: text.
+	meth <- encoder method: maxTemps class: c
+		fileName: fileName lineNum: startLineNum text: text.
 	meth args: argNames inst: instNames temp: tempNames.
 	^ meth
 !
@@ -2626,7 +2672,9 @@ parse: c
 !
 METHOD Parser
 error: aString
-	'Compile error near line ' print.
+	'Compile error in file ' print.
+	fileName print.
+	' near line ' print.
 	lineNum printString print.
 	': ' print.
 	aString printNl.
@@ -2929,7 +2977,8 @@ readBlock    | stmts saveTemps lnum |
 	tokenType = $]
 		ifTrue: [ self nextLex.
 			^ (BlockNode at: lnum) statements: stmts
-				temporaryLocation: saveTemps size ]
+				temporaryLocation: saveTemps size
+				lineNum: lnum ]
 		ifFalse: [ self error: 'unterminated block']
 !
 METHOD Parser
@@ -2975,7 +3024,10 @@ keywordContinuation: base  | receiver name args lnum |
 		ifTrue: [
 			" Extension shorthand "
 			name <- name + 'extend:'.
-			args add: ((LiteralNode at: lineNum) value: self readStringBlock).
+			args add: ((LiteralNode at: lineNum)
+				value: fileName + String newline +
+					lineNum asString + String newline +
+					self readStringBlock).
 		].
 
 	^ (MessageNode at: lnum) receiver:
@@ -3145,9 +3197,10 @@ compile: encoder block: inBlock | argsize |
 	encoder popArgs: argsize
 !
 METHOD BlockNode
-statements: s temporaryLocation: t
+statements: s temporaryLocation: t lineNum: l
 	statements <- s.
-	temporaryLocation <- t
+	temporaryLocation <- t.
+	lineNum <- l.
 !
 METHOD BlockNode
 compileInLine: encoder block: inBlock
@@ -3163,8 +3216,7 @@ isBlock
 METHOD BlockNode
 compile: encoder block: inBlock | patchLocation |
 	super compile: encoder.
-	" FIXME: Line number "
-	encoder genHigh: 5 low: 10.
+	encoder genHigh: 4 low: (encoder genLiteral: lineNum).
 	encoder genHigh: 12 low: temporaryLocation.
 	patchLocation <- encoder genVal: 0.
 	self compileInLine: encoder block: true.
@@ -3370,10 +3422,10 @@ backUp
 	index <- index - 1
 !
 METHOD Encoder
-method: maxTemps class: c text: text
+method: maxTemps class: c fileName: fileName lineNum: lineNum text: text
 	^ Method name: name byteCodes: byteCodes literals: literals
 		stackSize: maxStack temporarySize: maxTemps class: c
-		text: text
+		fileName: fileName lineNum: lineNum text: text
 !
 METHOD MetaFFI
 new

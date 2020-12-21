@@ -45,11 +45,13 @@
 #include "memory.h"
 #include "interp.h"
 
+#define defaultInputName "source/imageSource.st"
 #define defaultImageName "LittleSmalltalk.image"
 FILE           *fin;
 char            inputBuffer[4096],
                *p,
                 tokenBuffer[80];
+int             methodLineNo, lineNo;
 
 struct object  *lookupGlobal(char *name, int ok_missing);
 int             parseStatement(void),
@@ -80,6 +82,8 @@ struct object  *nilObject,
 
 struct object  *SymbolClass,
                *CharClass;
+
+struct object  *fileNameObj;
 
 #ifdef gcalloc
 #   undef gcalloc
@@ -190,6 +194,7 @@ LstInt lstReadOneCharacter()
 
   while(c == '\r')
     c = fgetc(fin);
+  if (c == '\n') lineNo++;
 
   return c;
 }
@@ -198,6 +203,7 @@ LstInt lstReadOneCharacter()
 void inputMethodText()
 {
   char            c;
+  methodLineNo = lineNo;
 
   p = inputBuffer;
   while(1)
@@ -932,13 +938,24 @@ int parseBlock(void)
 {
   int             savedLocation,
                   saveTop,
-                  argCount;
-  char           *savestart;
+                  argCount,
+                  blockLineNo;
+  char           *savestart, *lnp;
 
   savestart = p;
   p++;
   skipSpaces();
-  genInstruction(PushConstant, 0);
+
+  /* FIXME: This is a stupid way of getting the line number */
+  blockLineNo = methodLineNo;
+  for(lnp = inputBuffer; lnp < p; lnp++)
+  {
+    if(*lnp == '\n')
+    {
+      blockLineNo++;
+    }
+  }
+  genInstruction(PushLiteral, addLiteral(newInteger(blockLineNo)));
   genInstruction(PushBlock, tempTop);
   savedLocation = byteTop;
   genVal(0);
@@ -1527,8 +1544,10 @@ int parseMethod(struct object *theMethod)
     theMethod->data[temporarySizeInMethod] = newInteger(maxTemp);
     theMethod->data[classInMethod] = currentClass;
     theMethod->data[textInMethod] = newString(inputBuffer);
-    theMethod->data[fileInMethod] = nilObject;
-    theMethod->data[lineInMethod] = nilObject;
+    if (!fileNameObj)
+      fileNameObj = newString(defaultInputName);
+    theMethod->data[fileInMethod] = fileNameObj;
+    theMethod->data[lineInMethod] = newInteger(methodLineNo);
     return 1;
   }
   return 0;
@@ -2077,14 +2096,16 @@ int main(void)
   bigBang();
   addArgument("self");
 
-  if((fin = fopen("source/imageSource.st", "rb")) == NULL)
-    sysError("file in error", "source/imageSource.st");
+  if((fin = fopen(defaultInputName, "rb")) == NULL)
+    sysError("file in error", defaultInputName);
 
   /*
      then read the image source file 
    */
+  lineNo = 1;
   while(fgets((char *) inputBuffer, 1000, fin))
   {
+    lineNo++;
     p = inputBuffer;
     skipSpaces();
     readIdentifier();
