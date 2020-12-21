@@ -603,7 +603,7 @@ COMMENT -----------Context--------------
 METHOD Context
 setup: aMethod withArguments: a
 	method <- aMethod.
-	arguments <- Array new: 1.
+	arguments <- a.
 	bytePointer <- 0.
 	stack <- Array new: method stackSize.
 	stackTop <- 0.

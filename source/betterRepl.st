@@ -267,13 +267,13 @@ setErrBlock: to
 !
 
 " The REPL itself "
-+Object subclass: #REPL variables: (Array new: 0) classVariables: #(variables inst newInst stepper transferer)
++Object subclass: #REPL variables: #(variables inst newInst transferer)
 +Object subclass: #REPLFileReader variables: #(file)
 
 =REPLFileReader
 fileIn: nm | fr |
 	fr <- REPLFileReader new withFile: nm.
-	fr step.
+	fr fileIn.
 !
 
 !REPLFileReader
@@ -284,19 +284,21 @@ withFile: nm
 !
 
 !REPLFileReader
-step
-	REPL repl: file.
+fileIn
+	REPL new repl: file.
 	file close.
 	file <- nil.
 !
 
-=REPL
+!REPL
 repl
 	^ self repl: nil
 !
 
-=REPL
-main | arg doRepl command |
+!REPL
+main | fileInMeth arg doRepl command |
+	fileInMeth <- Undefined parseMethod: 'fileIn: x ^x fileIn' fromFile: 'REPL' atLine: 1.
+
 	" go through arguments "
 	doRepl <- true.
 	[arg <- System arg. arg notNil] whileTrue: [
@@ -335,7 +337,7 @@ main | arg doRepl command |
 		ifFalse: [
 			doRepl <- false.
 			inst <- REPLFileReader new withFile: arg.
-			Context new perform: stepper withArguments: (Array new: 0).
+			Context new perform: fileInMeth withArguments: (Array with: nil with: inst).
 		].
 	].
 
@@ -345,12 +347,11 @@ main | arg doRepl command |
 	].
 !
 
-=REPL
+!REPL
 repl: file | cmd readLine handler line |
 	variables <- (Array new: 0).
 	inst <- (Object subclass: #REPLInstance) new.
-	stepper <- Undefined parseMethod: 'step ^REPL inst step' fromFile: 'REPL' atLine: 1.
-	transferer <- Undefined parseMethod: 'rstep ^REPL transfer' fromFile: 'REPL' atLine: 1.
+	transferer <- Undefined parseMethod: 'transfer: x ^x transfer' fromFile: 'REPL' atLine: 1.
 
 	cmd <- ''.
 	file isNil
@@ -379,7 +380,7 @@ repl: file | cmd readLine handler line |
 	handler value.
 !
 
-=REPL
+!REPL
 replCmd: cmd andPrint: doPrint | prefix ncmd |
 	cmd = '' ifTrue: [^cmd].
 
@@ -398,16 +399,17 @@ replCmd: cmd andPrint: doPrint | prefix ncmd |
 	^self replCode: cmd andPrint: doPrint
 !
 
-=REPL
-replCode: icmd andPrint: doPrint | cmd p stmt text res |
+!REPL
+replCode: icmd andPrint: doPrint | cmd p stmt text meth res |
 	cmd <- icmd.
 	p <- Parser new fileName: '(FIXME)' lineNum: 1 text: cmd instanceVars: (Array new: 0).
 	[stmt <- p readStringBlock. stmt isNil] whileFalse: [
 		cmd <- p rest from: 2.
 
 		text <- 'step ^' + stmt.
-		((globals at: #REPLInstance) addMethod: text fromFile: '(input)' atLine: 1) isNil ifFalse: [
-			res <- (Context new perform: stepper withArguments: (Array new: 0)).
+		meth <- (globals at: #REPLInstance) addMethod: text fromFile: '(input)' atLine: 1.
+		meth isNil ifFalse: [
+			res <- (Context new perform: meth withArguments: (Array with: inst)).
 			doPrint ifTrue: [res printNl.].
 			(globals at: #REPLInstance) removeMethod: #step.
 		].
@@ -415,7 +417,7 @@ replCode: icmd andPrint: doPrint | cmd p stmt text res |
 	^cmd
 !
 
-=REPL
+!REPL
 replVars: cmd | p c newC newVars val |
 	" Get the new variables "
 	p <- Parser new fileName: '(FIXME)' lineNum: 1 text: cmd instanceVars: (Array new: 0).
@@ -435,7 +437,7 @@ replVars: cmd | p c newC newVars val |
 		var <- var asString.
 		c addMethod: 'getv ^' + var fromFile: 'REPL' atLine: 1.
 		newC addMethod: 'setv: x ' + var + ' <- x' fromFile: 'REPL' atLine: 1.
-		(Context new perform: transferer withArguments: (Array new: 0)).
+		(Context new perform: transferer withArguments: (Array with: nil with: self)).
 		newC removeMethod: #setv:.
 	].
 	variables <- newVars.
@@ -443,12 +445,12 @@ replVars: cmd | p c newC newVars val |
 	^p rest
 !
 
-=REPL
+!REPL
 transfer
 	newInst setv: inst getv.
 !
 
-=REPL
+!REPL
 inst
 	^inst
 !
@@ -458,7 +460,7 @@ inst
 main
 	Char initialize.
 	self initSingletons.
-	REPL main.
+	REPL new main.
 !
 
-+REPL main
++REPL new main
