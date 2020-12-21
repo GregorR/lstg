@@ -1,18 +1,26 @@
- _     _ _   _   _        ____                  _ _ _        _ _
-| |   (_) |_| |_| | ___  / ___| _ __ ___   __ _| | | |_ __ _| | | __
-| |   | | __| __| |/ _ \ \___ \| '_ ` _ \ / _` | | | __/ _` | | |/ /
-| |___| | |_| |_| |  __/  ___) | | | | | | (_| | | | || (_| | |   <
-|_____|_|\__|\__|_|\___| |____/|_| |_| |_|\__,_|_|_|\__\__,_|_|_|\_\ v5
+ _     _ _   _   _        ____                  _ _ _        _ _        ____
+| |   (_) |_| |_| | ___  / ___| _ __ ___   __ _| | | |_ __ _| | | __   / ___|
+| |   | | __| __| |/ _ \ \___ \| '_ ` _ \ / _` | | | __/ _` | | |/ /__| |  _
+| |___| | |_| |_| |  __/  ___) | | | | | | (_| | | | || (_| | |   < __| |_| |
+|_____|_|\__|\__|_|\___| |____/|_| |_| |_|\__,_|_|_|\__\__,_|_|_|\_\   \____| v6
 
 Copyright (C) 1987 - 2005, Timothy A. Budd
 Copyright (C) 2005 - 2007, Danny Reinhold
 Copyright (C) 2007,        Charles R. Childers
+Copyright (C) 2020,        Gregor Richards
 
-This is a continuation of the Little Smalltalk language developed by Timothy
-Budd. It is based on his Version 4 source, but has been modified in many ways.
-New features, classes, etc are being added and the system is slowly maturing
-into a truely useful implementation of the Smalltalk language. What follows is
-the original introduction.
+This is Gregor Richards's update to Little Smalltalk v5, called Little
+Smalltalk-G, which is intended for use as a teaching environment. Specifically,
+it is meant as a platform to talk about Smalltalk and the origins of object
+oriented programming, without requiring students to learn or understand the
+operating system/IDE side of it. i.e., it is Smalltalk minus Smalltalk, but
+still quite purely OO.
+
+Little Smalltalk v5 was, in turn, a continuation of the Little Smalltalk
+language developed by Timothy Budd. It is based on his Version 4 source, but
+has been modified in many ways. New features, classes, etc were added, and the
+system was slowly maturing into a truely useful implementation of the Smalltalk
+language. What follows is the original introduction from Little Smalltalk v4.
 
 What Little Smalltalk is, and more importantly, what it isn't
 
