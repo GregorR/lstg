@@ -391,7 +391,11 @@ struct object  *primitive(int primitiveNumber, struct object *args,
       size_t sz;
       ssize_t used, rd;
       i = integerValue(args->data[0]);
-      fprintf(stderr, "i = %d\n", i);
+      if((i < 0) || (i >= LST_FILEMAX) || !(fp = filePointers[i]))
+      {
+        *failed = 1;
+        break;
+      }
       buf = malloc(4096);
       if (!buf)
       {
@@ -400,7 +404,7 @@ struct object  *primitive(int primitiveNumber, struct object *args,
       }
       sz = 4096;
       used = 0;
-      while ((rd = read(i, buf + used, sz - used)) > 0)
+      while ((rd = fread(buf + used, 1, sz - used, fp)) > 0)
       {
         used += rd;
         if (used >= sz - 1)
@@ -414,8 +418,13 @@ struct object  *primitive(int primitiveNumber, struct object *args,
           }
         }
       }
-      buf[used] = 0;
-      returnedValue = lstNewString(buf);
+      if (used == 0)
+      {
+        returnedValue = nilObject;
+      } else {
+        buf[used] = 0;
+        returnedValue = lstNewString(buf);
+      }
       free(buf);
       break;
     }

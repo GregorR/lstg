@@ -2522,7 +2522,6 @@ readLine	| value  c nl |
 !
 METHOD File
 readFile
-	fileID printNl.
 	<116 fileID>
 !
 METHOD File
