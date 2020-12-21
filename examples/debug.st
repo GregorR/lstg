@@ -75,11 +75,12 @@ lineNum: l
 	]
 !
 !DebugEncoder
-method: maxTemps class: c text: text | ret |
+method: maxTemps class: c fileName: fileName lineNum: lineNum text: text | ret |
 	" Create the compiled Method from the generated code "
 	ret <- DebugMethod name: name byteCodes: byteCodes
 		literals: literals stackSize: maxStack
-		temporarySize: maxTemps class: c text: text.
+		temporarySize: maxTemps class: c fileName: fileName lineNum:
+		lineNum text: text.
 	ret debug: lines.
 	^ ret
 !
@@ -105,7 +106,10 @@ setDebug: sel | meth cl dict |
 		'Compiling ' print. sel printString print.
 		' for class ' print. cl print.
 		'...' printNl.
-		meth <- (Parser new text: meth text
+		meth <- (Parser new
+			fileName: meth file
+			lineNum: meth line
+			text: meth text
 			instanceVars: self instanceVariables)
 			 parse: self with: DebugEncoder.
 		meth notNil
@@ -183,17 +187,20 @@ showLine: ctx | line meth |
 	" Show source line corresponding to current VM instruction "
 	ctx isNil ifTrue: [ ^ nil ].
 	meth <- ctx method.
+	'Method ' print.  meth name print.
+	' for class ' print.  meth forClass print.
 	line <- self srcLine: ctx.
 	line isNil
 		ifTrue: [
-			'Method ' print.  meth name print.
-			' for class ' print.  meth forClass print.
 			': no source displayed.' printNl
 		]
 		ifFalse: [
 			" Show the text "
+			'' printNl.
+			'Source: ' print.
+			meth file printNl.
 			(line printString printWidth: 8) print.
-			(meth textlines at: line ifAbsent: ['']) printNl
+			(meth textlines at: (line - meth line + 1) ifAbsent: ['']) printNl
 		]
 !
 " Display current line of active procedure "
@@ -1024,11 +1031,11 @@ breakActive: flag
 	active <- flag
 !
 !DebugMethod
-codeLoc: line | set ret |
+codeLoc: xline | set ret |
 	" Map source line # to a code location "
 
 	" Get code generated for that line #, or return nil "
-	set <- lines at: line ifAbsent: [ ^ nil ].
+	set <- lines at: xline ifAbsent: [ ^ nil ].
 
 	" Return lowest code location "
 	ret <- set anyOne.
