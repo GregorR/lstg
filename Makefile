@@ -1,4 +1,4 @@
-# Makefile for Little Smalltalk, Version 5
+# Makefile for Little Smalltalk-G, Version 6
 #
 
 #

@@ -7,7 +7,7 @@ COMMENT create a binary image for the Little Smalltalk
 COMMENT virtual machine.
 COMMENT
 COMMENT ---------------------------------------------------------------
-COMMENT Little Smalltalk, Version 5
+COMMENT Little Smalltalk-G, Version 6
 COMMENT
 COMMENT Copyright (C) 1987-2005 by Timothy A. Budd
 COMMENT Copyright (C) 2007 by Charles R. Childers

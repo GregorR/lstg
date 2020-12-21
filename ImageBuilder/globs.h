@@ -5,7 +5,7 @@
  * Global definitions - used by the image builder
  *
  * ---------------------------------------------------------------
- * Little Smalltalk, Version 5
+ * Little Smalltalk-G, Version 6
  * 
  * Copyright (C) 1987-2005 by Timothy A. Budd
  * Copyright (C) 2007 by Charles R. Childers

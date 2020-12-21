@@ -5,7 +5,7 @@
  * This tool is used to create an initial system image from Smalltalk sources
  *
  * ---------------------------------------------------------------
- * Little Smalltalk, Version 5
+ * Little Smalltalk-G, Version 6
  * 
  * Copyright (C) 1987-2005 by Timothy A. Budd
  * Copyright (C) 2007 by Charles R. Childers
