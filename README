@@ -19,7 +19,7 @@ still quite purely OO.
 Little Smalltalk v5 was, in turn, a continuation of the Little Smalltalk
 language developed by Timothy Budd. It is based on his Version 4 source, but
 has been modified in many ways. New features, classes, etc were added, and the
-system was slowly maturing into a truely useful implementation of the Smalltalk
+system was slowly maturing into a truly useful implementation of the Smalltalk
 language. What follows is the original introduction from Little Smalltalk v4.
 
 What Little Smalltalk is, and more importantly, what it isn't
