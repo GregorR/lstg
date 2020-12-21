@@ -409,6 +409,7 @@ repl: file | readLine handler line i |
 
 		" Run command(s) "
 		self replCmdAndPrint: file isNil.
+		self leftStripCmd.
 
 		" Prompt "
 		cmd = ''
@@ -456,7 +457,6 @@ replCmdAndPrint: doPrint | prefix i |
 	].
 
 	self replCodeAndPrint: doPrint.
-	^self replCmdAndPrint: doPrint
 !
 
 !REPL
