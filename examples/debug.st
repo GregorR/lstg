@@ -41,18 +41,19 @@
  (blank line)		Re-enter previous command.  Useful for single
  			stepping statements in a row.
 "
-+Encoder subclass: #DebugEncoder variables: #(lines oldLine oldRange)
-+Method subclass: #DebugMethod variables: #(lines textlines vars bpoints active)
-+Object subclass: #Debug variables: #(proc bpoints prevList selctx)
-!DebugEncoder
-name: n
+Encoder subclass: #DebugEncoder variables: #(lines oldLine oldRange).
+Method subclass: #DebugMethod variables: #(lines textlines vars bpoints active).
+Object subclass: #Debug variables: #(proc bpoints prevList selctx).
+
+DebugEncoder extend [
+name: n [
 	" Hook to set up our instance variables "
 	lines <- Dictionary new.
 	oldLine <- 0.
 	^ super name: n
-!
-!DebugEncoder
-genCode: byte
+]
+
+genCode: byte [
 	" Record code generated versus line number "
 	oldRange isNil ifTrue: [
 		oldRange <- lines at: oldLine ifAbsent: [nil].
@@ -63,9 +64,9 @@ genCode: byte
 	].
 	oldRange add: index.
 	^ super genCode: byte
-!
-!DebugEncoder
-lineNum: l
+]
+
+lineNum: l [
 	" Note when the line number changes "
 	(l ~= oldLine) ifTrue: [
 		oldLine <- l.
@@ -73,9 +74,10 @@ lineNum: l
 		  actually see some code generated for this source line."
 		oldRange <- nil
 	]
-!
-!DebugEncoder
-method: maxTemps class: c fileName: fileName lineNum: lineNum text: text | ret |
+]
+
+method: maxTemps class: c fileName: fileName lineNum: lineNum text: text [
+	| ret |
 	" Create the compiled Method from the generated code "
 	ret <- DebugMethod name: name byteCodes: byteCodes
 		literals: literals stackSize: maxStack
@@ -83,9 +85,12 @@ method: maxTemps class: c fileName: fileName lineNum: lineNum text: text | ret |
 		lineNum text: text.
 	ret debug: lines.
 	^ ret
-!
-!Class
-setDebug: sel | meth cl dict |
+]
+].
+
+Class extend [
+setDebug: sel [
+	| meth cl dict |
 	" Recompile a Method into a DebugMethod, recording additional
 	  debug information. "
 
@@ -122,9 +127,12 @@ setDebug: sel | meth cl dict |
 		 ]
 	].
 	^ meth
-!
-!Debug
-runIt: count | ret |
+]
+].
+
+Debug extend [
+runIt: count [
+	| ret |
 	" Blow away any selected context when we run "
 	selctx <- nil.
 
@@ -138,37 +146,44 @@ runIt: count | ret |
 	(ret = 3) ifTrue: [ 'Message not understood' printNl ].
 	(ret = 4) ifTrue: [ 'Method returned' printNl ].
 	^ false
-!
-!Context
-method
+]
+].
+
+Context extend [
+method [
 	^ method
-!
-!Context
-bytePointer
+]
+
+bytePointer [
 	^ bytePointer
-!
-!Context
-stack
+]
+
+stack [
 	^ stack
-!
-!Context
-stackTop
+]
+
+stackTop [
 	^ stackTop
-!
-!Context
-temporaries
+]
+
+temporaries [
 	^ temporaries
-!
-!Context
-arguments
+]
+
+arguments [
 	^ arguments
-!
-!Method
-forClass
+]
+].
+
+Method extend [
+forClass [
 	^ class
-!
-!Debug
-srcLine: ctx | meth line |
+]
+].
+
+Debug extend [
+srcLine: ctx [
+	| meth line |
 	" Get source line corresponding to current byte pointer "
 	meth <- ctx method.
 
@@ -180,10 +195,11 @@ srcLine: ctx | meth line |
 
 	" Return source line pointer or nil "
 	^ meth srcLine: ctx bytePointer.
-!
+]
+
 " Show current source line of a given context "
-!Debug
-showLine: ctx | line meth |
+showLine: ctx [
+	| line meth |
 	" Show source line corresponding to current VM instruction "
 	ctx isNil ifTrue: [ ^ nil ].
 	meth <- ctx method.
@@ -202,14 +218,17 @@ showLine: ctx | line meth |
 			(line printString printWidth: 8) print.
 			(meth textlines at: (line - meth line + 1) ifAbsent: ['']) printNl
 		]
-!
+]
+
 " Display current line of active procedure "
-!Debug
-showLine
+showLine [
 	^ self showLine: self curContext
-!
-=Debug
-run: line | meth ret ctx proc |
+]
+].
+
+Debug class extend [
+run: line [
+	| meth ret ctx proc |
 	" Run a command line under the debugger"
 
 	meth <- (Parser new text: ('debugCmd ^' + line) instanceVars: #())
@@ -223,15 +242,18 @@ run: line | meth ret ctx proc |
 		ret proc: proc.
 		ret run
 	]
-!
-!Debug
-proc: p
+]
+].
+
+Debug extend [
+proc: p [
 	" Initialize our new debug session "
 	proc <- p.
 	bpoints <- Array new: 0
-!
-!Debug
-atCall | ret meth ctx pc low high |
+]
+
+atCall [
+	| ret meth ctx pc low high |
 	" Tell if the VM instruction pointer is at a method invocation "
 
 	" Get the next instruction "
@@ -256,9 +278,10 @@ atCall | ret meth ctx pc low high |
 	ret at: 1 put: (meth literals at: (low + 1)).
 	ret at: 2 put: pc.
 	^ ret
-!
-!Debug
-stepCall: sel | ctx stack sp args target meth |
+]
+
+stepCall: sel [
+	| ctx stack sp args target meth |
 	" Set up to step into a new method "
 	ctx <- proc context.
 	stack <- ctx stack.
@@ -275,9 +298,10 @@ stepCall: sel | ctx stack sp args target meth |
 		^ true
 	].
 	^ false
-!
-!Debug
-onBreak | ctx meth rec |
+]
+
+onBreak [
+	| ctx meth rec |
 	" Tell if we're at a breakpoint.  As a side effect, display
 	  this fact to the user."
 	ctx <- proc context.
@@ -295,9 +319,10 @@ onBreak | ctx meth rec |
 		]
 	].
 	^ false
-!
-!Debug
-overCall: pc | ctx old res meth |
+]
+
+overCall: pc [
+	| ctx old res meth |
 	" Set a breakpoint at the instruction beyond the SendMessage "
 	ctx <- proc context.
 	meth <- ctx method.
@@ -338,9 +363,10 @@ overCall: pc | ctx old res meth |
 	" Some other error killed us "
 	'Execution aborted' printNl.
 	^ true
-!
-!Debug
-doStep: intoCalls | srcl ret ctx |
+]
+
+doStep: intoCalls [
+	| srcl ret ctx |
 	" Implement a single step, stepping either over or into calls
 	  (method invocations) depending on the intoCalls argument. "
 	ctx <- proc context.
@@ -369,9 +395,9 @@ doStep: intoCalls | srcl ret ctx |
 		]
 	].
 	^ false
-!
-!Debug
-printReg: reg in: ctx
+]
+
+printReg: reg in: ctx [
 	" Print a VM register "
 	(reg = '$pc') ifTrue: [
 		ctx bytePointer print. ^ self
@@ -380,14 +406,15 @@ printReg: reg in: ctx
 		ctx stackTop print. ^ self
 	].
 	'Unknown register: ' print. reg print
-!
-!Debug
-curContext
+]
+
+curContext [
 	selctx isNil ifTrue: [ ^ proc context ].
 	^ selctx
-!
-!Debug
-whatis: args | ctx meth |
+]
+
+whatis: args [
+	| ctx meth |
 	" Display arguments, temporaries, instance variables, and
 	  VM registers. "
 
@@ -410,9 +437,10 @@ whatis: args | ctx meth |
 			meth whatis: var in: ctx
 		]
 	]
-!
-!Debug
-examine: args | ctx meth |
+]
+
+examine: args [
+	| ctx meth |
 	" Display arguments, temporaries, instance variables, and
 	  VM registers. "
 
@@ -436,9 +464,10 @@ examine: args | ctx meth |
 		].
 		Char newline print
 	]
-!
-!Debug
-setBreak: args | s cl clname meth methname i rec lineNum inClass arg loc |
+]
+
+setBreak: args [
+	| s cl clname meth methname i rec lineNum inClass arg loc |
 	" Set a breakpoint "
 
 	" Map straight line # to current class/method "
@@ -523,9 +552,10 @@ setBreak: args | s cl clname meth methname i rec lineNum inClass arg loc |
 	" Set & record the breakpoint "
 	meth setBreak: loc.
 	bpoints <- bpoints with: rec
-!
-!Debug
-clearBreak: args | arg n rec meth lineNum |
+]
+
+clearBreak: args [
+	| arg n rec meth lineNum |
 	" Delete an existing breakpoint "
 
 	arg <- args at: 1 ifAbsent: ['Missing argument' printNl. ^ nil].
@@ -544,9 +574,10 @@ clearBreak: args | arg n rec meth lineNum |
 			n print. ': deleted' printNl
 		]
 	]
-!
-!Debug
-listBreak | rec meth lineNum |
+]
+
+listBreak [
+	| rec meth lineNum |
 	" List breakpoints "
 
 	'Breakpoints:' printNl.
@@ -558,9 +589,10 @@ listBreak | rec meth lineNum |
 		meth name printString print. '/' print.
 		lineNum printNl
 	]
-!
-!Debug
-breakActive: flag | meths |
+]
+
+breakActive: flag [
+	| meths |
 	" Make all our breakpoints active or inactive, depending
 	  on flag's value. "
 	meths <- Set new.
@@ -568,9 +600,10 @@ breakActive: flag | meths |
 		meths add: (rec at: 1)
 	].
 	meths do: [:meth| meth breakActive: flag]
-!
-!Debug
-list: args | meth where src ctx |
+]
+
+list: args [
+	| meth where src ctx |
 	" List source code "
 
 	" Get the method we're going to display "
@@ -607,7 +640,7 @@ list: args | meth where src ctx |
 			prevList <- x
 		]
 	]
-!
+]
 
 " nextContext:
 	Return next context deeper in context stack
@@ -615,21 +648,21 @@ list: args | meth where src ctx |
   Because contexts are only forward linked, we have to search from
   the top inward, then return the next one out.
 "
-!Debug
-nextContext: ctx | c prev |
+nextContext: ctx [
+	| c prev |
 	c <- proc context.
 	[(prev <- c previousContext) ~= ctx] whileTrue: [
 		prev isNil ifTrue: [ ^ nil ].
 		c <- prev
 	].
 	^ c
-!
+]
 
 " upDown:count:
 	Move up or down the stack frames
 "
-!Debug
-upDown: up count: args | c count |
+upDown: up count: args [
+	| c count |
 	" If nothing selected, start from bottom of stack "
 	selctx <- self curContext.
 
@@ -652,13 +685,13 @@ upDown: up count: args | c count |
 		" Just ignore running off the end "
 		c isNil ifFalse: [ selctx <- c ]
 	]
-!
+]
 
 " makeDebug:
 	Convert Class methods to DebugMethod's
 "
-!Debug
-makeDebug: args | cl meta n |
+makeDebug: args [
+	| cl meta n |
 	args do: [:clname|
 		" Map MetaFOO -> FOO class "
 		((clname from: 1 to: 4) = 'Meta') ifTrue: [
@@ -681,10 +714,10 @@ makeDebug: args | cl meta n |
 			cl methods keysDo: [:k| cl setDebug: k ]
 		 ]
 	]
-!
+]
 
-!Debug
-run | prev did cmd done line |
+run [
+	| prev did cmd done line |
 	" Main command loop for the debugger session "
 
 	prev <- ''.
@@ -841,9 +874,12 @@ run | prev did cmd done line |
 		" Error "
 		did ifFalse: [ 'Unknown command.' printNl ].
 	]
-!
-!String
-asLines | c ret slot idx base top nl |
+]
+].
+
+String extend [
+asLines [
+	| c ret slot idx base top nl |
 	" Convert a string with embedded newlines into an Array
 	  with one slot per line.  The newlines are not a part of
 	  these lines. "
@@ -869,33 +905,35 @@ asLines | c ret slot idx base top nl |
 		ret at: slot put: (self from: base to: idx)
 	].
 	^ ret
-!
-!DebugMethod
-debug: l
+]
+].
+
+DebugMethod extend [
+debug: l [
 	" Hook to initialize our DebugMethod instance "
 	lines <- l.
 	textlines <- text asLines.
 	bpoints <- Dictionary new.
 	active <- false
-!
-!DebugMethod
-debug
+]
+
+debug [
 	^ lines
-!
-!DebugMethod
-textlines
+]
+
+textlines [
 	^ textlines
-!
-!DebugMethod
-args: argNames inst: instNames temp: tempNames
+]
+
+args: argNames inst: instNames temp: tempNames [
 	" Record debug data "
 	vars <- Array new: 3.
 	vars at: 1 put: argNames.
 	vars at: 2 put: instNames.
 	vars at: 3 put: tempNames
-!
-!DebugMethod
-srcLine: bp
+]
+
+srcLine: bp [
 	" Map the VM instruction byte pointer onto a source line # "
 	lines binaryDo: [:src :range |
 		(range includes: bp) ifTrue: [
@@ -904,9 +942,10 @@ srcLine: bp
 	].
 	'No match for ' print. bp printString printNl.
 	^nil
-!
-!DebugMethod
-whatis: var in: ctx | idx obj |
+]
+
+whatis: var in: ctx [
+	| idx obj |
 	" Describe a variable in this Method "
 
 	" Name of an argument "
@@ -945,9 +984,10 @@ whatis: var in: ctx | idx obj |
 		" Couldn't find it... "
 		'Unknown variable' print. var printNl
 	]
-!
-!DebugMethod
-getVar: var in: ctx | idx |
+]
+
+getVar: var in: ctx [
+	| idx |
 	" Get a variable in this Method, return its value "
 
 	" Name of an argument "
@@ -966,16 +1006,18 @@ getVar: var in: ctx | idx |
 
 	" Couldn't find it... "
 	^ nil
-!
-!DebugMethod
-print: var in: ctx | obj |
+]
+
+print: var in: ctx [
+	| obj |
 	" Print a variable in this Method "
 	obj <- self getVar: var in: ctx.
 	obj isNil ifTrue: [ ('Unknown variable: ' + var) printNl ]
 	 ifFalse: [ obj printNl ]
-!
-!DebugMethod
-setBreak: bp | old |
+]
+
+setBreak: bp [
+	| old |
 	" Set a breakpoint in this Method "
 
 	" If already set, ignore "
@@ -991,9 +1033,9 @@ setBreak: bp | old |
 
 	" Record this breakpoint "
 	bpoints at: bp put: old
-!
-!DebugMethod
-clearBreak: bp
+]
+
+clearBreak: bp [
 	" Remove a breakpoint in this Method "
 
 	" If not set, ignore "
@@ -1004,9 +1046,9 @@ clearBreak: bp
 
 	" Remove record of this breakpoint "
 	bpoints removeKey: bp
-!
-!DebugMethod
-patchBreak: bp active: flag
+]
+
+patchBreak: bp active: flag [
 	" Set or clear the breakpoint instruction in the code"
 
 	flag ifTrue: [
@@ -1016,9 +1058,9 @@ patchBreak: bp active: flag
 		" Restore old code at this location "
 		byteCodes at: (bp + 1) put: (bpoints at: bp)
 	]
-!
-!DebugMethod
-breakActive: flag
+]
+
+breakActive: flag [
 	" Activate or deactivate breakpoints for this Method "
 
 	" Skip all this if we aren't changing settings "
@@ -1029,9 +1071,10 @@ breakActive: flag
 		self patchBreak: bp active: flag
 	].
 	active <- flag
-!
-!DebugMethod
-codeLoc: xline | set ret |
+]
+
+codeLoc: xline [
+	| set ret |
 	" Map source line # to a code location "
 
 	" Get code generated for that line #, or return nil "
@@ -1041,9 +1084,12 @@ codeLoc: xline | set ret |
 	ret <- set anyOne.
 	set do: [:elem| ret <- ret min: elem].
 	^ ret
-!
-!Debug
-browse: args | meth br ctx |
+]
+].
+
+Debug extend [
+browse: args [
+	| meth br ctx |
 	" Get the DebugMethod, which has symbolic information for variables "
 	ctx <- self curContext.
 	meth <- ctx method.
@@ -1060,4 +1106,5 @@ browse: args | meth br ctx |
 	].
 
 	^ br on: (meth getVar: (args at: 1) in: ctx)
-!
+]
+].
