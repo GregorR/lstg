@@ -29,6 +29,7 @@ HOST_LDFLAGS=$(HOST_LDFLAGS_EXTRA)
 #
 DEPS = source/interp.h source/memory.h source/lst_primitives.h
 SOURCES = source/interp.c source/main.c source/memory.c source/lst_primitives.c
+ST_SOURCES = st-source/browser.st st-source/debug.st
 
 
 #
@@ -98,8 +99,10 @@ bin/imageBuilder: ImageBuilder/imageBuilder.c
 LittleSmalltalk.image: st-source/imageSource.st bin/imageBuilder
 	$ ./bin/imageBuilder
 
-lstg.image: st-source/betterRepl.st bin/st LittleSmalltalk.image
-	printf 'File fileIn: '\''st-source/betterRepl.st'\''.\nFile image: '\''lstg.image'\''.\n' | ./bin/st -i LittleSmalltalk.image
+lstg.image: st-source/betterRepl.st $(ST_SOURCES) bin/st LittleSmalltalk.image
+	printf 'File fileIn: '\''st-source/betterRepl.st'\''.\nFile image: '\''lstg-repl.image'\''.\n' | ./bin/st -i LittleSmalltalk.image
+	printf 'File image: '\''lstg.image'\''.\n' | ./bin/st -i lstg-repl.image $(ST_SOURCES) -r
+	rm -f lstg-repl.image
 
 lstg.h: lstg.image
 	xxd -i $< > $@
