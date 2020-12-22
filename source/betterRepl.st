@@ -435,7 +435,7 @@ repl: file | readLine handler line i |
 		cmd <- cmd + line + String newline.
 
 		" Run command(s) "
-		self replCmdAndPrint: file isNil.
+		(self replCmdAndPrint: file isNil) ifFalse: [^self].
 		self leftStripCmd.
 
 		" Prompt "
@@ -451,6 +451,10 @@ repl: file | readLine handler line i |
 	[readLine value. line isNil] whileFalse: handler.
 	line <- '.'.
 	handler value.
+
+	cmd = '' ifFalse: [
+		^self error: 'unhandled input'
+	].
 !
 
 !REPL
@@ -465,15 +469,26 @@ leftStripCmd | i |
 !
 
 !REPL
+dropOneLine
+	[cmd ~= '' and: [(cmd at: 1) ~= Char newline]] whileTrue: [cmd <- cmd from: 2].
+!
+
+!REPL
 replCmdAndPrint: doPrint | prefix i |
 	self leftStripCmd.
 
-	cmd = '' ifTrue: [^self].
+	cmd = '' ifTrue: [^true].
 
 	prefix <- cmd at: 1.
 
 	prefix = $| ifTrue: [
-		self replVars: cmd.
+		self replVars.
+		^self replCmdAndPrint: doPrint
+	].
+
+	prefix = $! ifTrue: [
+		" Special commands "
+		self replSpecial ifFalse: [^false].
 		^self replCmdAndPrint: doPrint
 	].
 
@@ -486,6 +501,8 @@ replCmdAndPrint: doPrint | prefix i |
 	(self replCodeAndPrint: doPrint) ifTrue: [
 		^self replCmdAndPrint: doPrint
 	].
+
+	^true
 !
 
 !REPL
@@ -512,7 +529,7 @@ replCodeAndPrint: doPrint | p ln stmt text meth res |
 replVars | p c newC newVars val |
 	" Get the new variables "
 	p <- Parser new fileName: fileName lineNum: lineNum text: cmd instanceVars: (Array new: 0).
-	p setErrBlock: [^''].
+	p setErrBlock: [self dropOneLine. ^self].
 	p nextLex.
 	newVars <- p readMethodVariables.
 	self trimCmd: p index.
@@ -533,6 +550,25 @@ replVars | p c newC newVars val |
 	].
 	variables <- newVars.
 	inst <- newInst.
+!
+
+!REPL
+replSpecial | p |
+	" Get the command "
+	p <- Parser new fileName: fileName lineNum: lineNum text: cmd instanceVars: (Array new: 0).
+	p nextChar.
+	p nextLex.
+
+	p token isNil ifTrue: [^true].
+	p token = 'quit' ifTrue: [^false].
+
+	'Unrecognized command: ' print.
+	p token printNl.
+
+	" Skip to the end of the line "
+	self dropOneLine.
+
+	^true.
 !
 
 !REPL

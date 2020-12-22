@@ -2532,7 +2532,9 @@ readLine	| value  c nl |
 !
 METHOD File
 readFile
-	<116 fileID>
+	<116 fileID>.
+	fileID isNil ifTrue: [ self notOpened ].
+	self primitiveFailed
 !
 METHOD File
 fileInDispatch: cmd | c |
