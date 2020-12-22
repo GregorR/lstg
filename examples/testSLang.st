@@ -1,12 +1,14 @@
-+FFI subclass: #SLang variables: #(so) classVariables: #(SLangSingleton).
-=SLang
-singleton
+FFI subclass: #SLang variables: #(so) classVariables: #(SLangSingleton).
+
+SLang class extend [
+singleton [
   SLangSingleton isNil ifTrue: [SLangSingleton <- self basicNew open].
   ^SLangSingleton.
-!
+]
+].
 
-!SLang
-open
+SLang extend [
+open [
   so <- FFI new: 'libslang'.
   #(
     'SLang_getkey_intr_hook'
@@ -53,107 +55,108 @@ open
     'SLtt_Screen_Rows'
     'SLtt_Use_Ansi_Colors'
   ) do: [ :elem | so add: elem asSymbol ].
-!
-!SLang
-init
+]
+
+init [
   so call: ('SLang_init_tty' asSymbol) args: #(-1 0 0).
   so call: ('SLtt_get_terminfo' asSymbol).
   so call: ('SLkp_init' asSymbol).
   so call: ('SLsmg_init_smg' asSymbol).
   so call: ('SLtt_set_cursor_visibility' asSymbol) arg: 0.
-!
-!SLang
-reset
+]
+
+reset [
   so call: ('SLtt_set_cursor_visibility' asSymbol) arg: 1.
   so call: ('SLsmg_reset_smg' asSymbol).
   so call: ('SLang_reset_tty' asSymbol).
-!
-!SLang
-drawBox: box
+]
+
+drawBox: box [
   so call: ('SLsmg_draw_box' asSymbol) args: box.
-!
-!SLang
-refresh
+]
+
+refresh [
   so call: ('SLsmg_refresh' asSymbol) arg: 1.
-!
-!SLang
-screenCols
+]
+
+screenCols [
   ^so getInt: ('SLtt_Screen_Cols' asSymbol).
-!
-!SLang
-screenRows
+]
+
+screenRows [
   ^so getInt: ('SLtt_Screen_Rows' asSymbol).
-!
-!SLang
-pendingInput: t
+]
+
+pendingInput: t [
   ^so callInt: ('SLang_input_pending' asSymbol) arg: t.
-!
-!SLang
-flushInput
+]
+
+flushInput [
   [(self pendingInput: 0) ~= 0] whileTrue: [self getKey].
-!
-!SLang
-getKey
+]
+
+getKey [
   ^so callInt: ('SLkp_getkey' asSymbol).
-!
-!SLang
-goto: rowCol
+]
+
+goto: rowCol [
   so call: ('SLsmg_gotorc' asSymbol) args: rowCol.
-!
-!SLang
-gotoRow: r col: c 
+]
+
+gotoRow: r col: c [
   |rowCol|
   rowCol <- Array new: 2.
   rowCol at: 1 put: r.
   rowCol at: 2 put: c.
   so call: ('SLsmg_gotorc' asSymbol) args: rowCol.
-!
-!SLang
-writeString: s
+]
+
+writeString: s [
   so call: ('SLsmg_write_string' asSymbol) arg: s.
-!
-!SLang
-writeString: s at: rowCol
+]
+
+writeString: s at: rowCol [
   self goto: rowCol. self writeString: s.
-!
-!SLang
-normalCharSet
+]
+
+normalCharSet [
   so call: 'SLsmg_set_char_set' asSymbol arg: 0.
-!
-!SLang
-lineCharSet
+]
+
+lineCharSet [
   so call: 'SLsmg_set_char_set' asSymbol arg: 1.
-!
-!SLang
-writeChar: c
+]
+
+writeChar: c [
   so call: ('SLsmg_write_char' asSymbol) arg: c.
-!
-!SLang
-writeChar: c at: rowCol
+]
+
+writeChar: c at: rowCol [
   self goto: rowCol.  self writeChar: c.
-!
-!SLang
-clearScreen
+]
+
+clearScreen [
   so call: ('SLsmg_cls' asSymbol).
-!
-!SLang
-close
+]
+
+close [
   so close.
-!
+]
+].
 
-+Object subclass: #SLComponent variables: #(sl top left height width)
-=SLComponent
-new
+Object subclass: #SLComponent variables: #(sl top left height width).
+SLComponent class extend [
+new [
   ^self basicNew initialize.
-!
+]
+].
   
-!SLComponent
-initialize
+SLComponent extend [
+initialize [
   sl <- SLang singleton.
-!
+]
 
-=SLang
-test
+test [
   | s k |
   s <- SLang singleton.
   s init.
@@ -179,4 +182,5 @@ test
   s refresh.
   s reset.
   s close.
-!
+]
+].

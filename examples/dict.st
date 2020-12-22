@@ -1,15 +1,18 @@
-+Set subclass: #Dict
-+Dict subclass: #RotorDict variables: #(rotor)
-!Dict
-at: key ifAbsent: aBlock | pos assoc |
+Set subclass: #Dict.
+Dict subclass: #RotorDict variables: #(rotor).
+
+Dict extend [
+at: key ifAbsent: aBlock [
+	| pos assoc |
 	pos <- self location: key.
 	((pos isNil) or: [(assoc <- members at: pos) isNil]) ifTrue: [
 		^ aBlock value
 	].
 	^ assoc value
-!
-!Dict
-at: key put: value | assoc pos |
+]
+
+at: key put: value [
+	| assoc pos |
 	" Create the Association "
 	assoc <- Association key: key value: value.
 
@@ -17,63 +20,68 @@ at: key put: value | assoc pos |
 	self add: assoc.
 
 	^ value
-!
-!Dict
-binaryDo: aBlock
+]
+
+binaryDo: aBlock [
 	members do: [:assoc|
 		assoc notNil ifTrue: [ aBlock value: (assoc key)
 			value: (assoc value) ]
 	]
-!
-!Dict
-keysDo: aBlock
+]
+
+keysDo: aBlock [
 	members do: [:assoc|
 		assoc notNil ifTrue: [ aBlock value: (assoc key) ]
 	]
-!
-!Dict
-associationsDo: aBlock
+]
+
+associationsDo: aBlock [
 	members do: [:assoc|
 		assoc notNil ifTrue: [ aBlock value: assoc ]
 	]
-!
-!Dict
-basicDo: aBlock
+]
+
+basicDo: aBlock [
 	^ self associationsDo: aBlock
-!
-!Dict
-keysAsArray | i ret |
+]
+
+keysAsArray [
+	| i ret |
 	ret <- Array new: self size.
 	i <- 1.
 	members do: [:assoc| ret at: i put: assoc key. i <- i + 1 ].
 	^ ret
-!
-!Dict
-isEmpty
+]
+
+isEmpty [
 	members do: [:assoc| assoc notNil ifTrue: [ ^ false ]].
 	^ true
-!
-!Dict
-do: aBlock
+]
+
+do: aBlock [
 	members do: [:assoc| assoc notNil ifTrue:
 		[ aBlock value: (assoc value) ] ]
-!
-!Dict
-removeKey: key ifAbsent: aBlock | assoc |
+]
+
+removeKey: key ifAbsent: aBlock [
+	| assoc |
 	assoc <- Association key: key value: nil.
 	super remove: assoc ifAbsent: [ ^ aBlock value ].
 	^ key
-!
-!Dict
-removeKey: key
+]
+
+removeKey: key [
 	^ self removeKey: key ifAbsent: [ self noElement ]
-!
-!Dict
-remove: value ifAbsent: ignore
+]
+
+remove: value ifAbsent: ignore [
 	self error: 'Can only remove by key'
-!
-!RotorDict
-rotorDo: aBlock | start lim assoc |
+]
+].
+
+RotorDict extend [
+rotorDo: aBlock [
+	| start lim assoc |
 	lim <- members size.
 	rotor isNil ifTrue: [ rotor <- 1 ].
 	start <- rotor.
@@ -84,16 +92,17 @@ rotorDo: aBlock | start lim assoc |
 		assoc notNil ifTrue: [ aBlock value: assoc ].
 		(rotor = start) ifTrue: [ ^ self ]
 	]
-!
-!RotorDict
-do: aBlock
+]
+
+do: aBlock [
 	^self rotorDo: [:assoc| aBlock value: assoc value]
-!
-!RotorDict
-keysDo: aBlock
+]
+
+keysDo: aBlock [
 	^self rotorDo: [:assoc| aBlock value: assoc key]
-!
-!RotorDict
-binaryDo: aBlock
+]
+
+binaryDo: aBlock [
 	^self rotorDo: [:assoc| aBlock value: assoc key value: assoc value]
-!
+]
+].

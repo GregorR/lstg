@@ -1,87 +1,89 @@
-+Object subclass: #Inet variables: #()
-=Inet
-firstIpStringFromHostname: nm
+Object subclass: #Inet variables: #().
+
+Inet class extend [
+firstIpStringFromHostname: nm [
     <251 0 nm>
-!
-=Inet
-firstIpAddressFromHostname: nm
+]
+
+firstIpAddressFromHostname: nm [
     <251 1 nm>
-!
-=Inet
-newIpAddressFromIpString: s
+]
+
+newIpAddressFromIpString: s [
     <251 2 s>
-!
-=Inet
-newSocketAddressFromIpAddress: addr port: p
+]
+
+newSocketAddressFromIpAddress: addr port: p [
     <251 3 addr p>
-!
-=Inet
-newSocketAddressFromIpString: s port: p
+]
+
+newSocketAddressFromIpString: s port: p [
     <251 4 s p>
-!
-=Inet
-newSocketAddressFromHostname: nm port: p
+]
+
+newSocketAddressFromHostname: nm port: p [
     <251 5 nm p>
-!
+]
+].
 
-+Object subclass: #Socket variables: #(sockfd)
+Object subclass: #Socket variables: #(sockfd).
 
-!Socket
-socket
+Socket extend [
+socket [
     ^sockfd.
-!
-!Socket
-socket: fd
+]
+
+socket: fd [
     sockfd <- fd.
-!
-!Socket
-basicClose
+]
+
+basicClose [
     <250 20 sockfd>
-!
-!Socket
-close
+]
+
+close [
     self basicClose.
     self socket: nil.
-!
-!Socket
-connect: socketAddr
+]
+
+connect: socketAddr [
     <250 60 sockfd socketAddr>
-!
-!Socket
-canRead
+]
+
+canRead [
     <250 92 sockfd 1>
-!
-!Socket
-canReadWithTimeout: milliseconds
+]
+
+canReadWithTimeout: milliseconds [
     <250 92 sockfd 1 milliseconds>
-!
-!Socket
-canWrite
+]
+
+canWrite [
     <250 92 sockfd 2>
-!
-!Socket
-canWriteWithTimeout: milliseconds
+]
+
+canWriteWithTimeout: milliseconds [
     <250 92 sockfd 2 milliseconds>
-!
-!Socket
-basicRecv: aBuffer size: n
+]
+
+basicRecv: aBuffer size: n [
     <250 80 sockfd aBuffer n>
-!
-!Socket
-basicRecv: aBuffer
+]
+
+basicRecv: aBuffer [
     ^ self basicRecv: aBuffer size: (aBuffer size).
-!
-!Socket
-recv: n
+]
+
+recv: n [
     | aBuffer got |
     aBuffer <- String new: n.
     got <- self basicRecv: aBuffer size: n.
     got > 0
         ifTrue: [ ^ aBuffer from: 1 to: got ]
         ifFalse: [ ^ nil ].
-!
-!Socket
-recvAll
+]
+
+recvAll [
     | buf total rc waitResult|
     total <- ''.
     buf <- String new: 2048.
@@ -94,29 +96,33 @@ recvAll
             0 = rc ifTrue: [^total].
             ].
     ^total
-!
-!Socket
-basicSend: bytes size: n
+]
+
+basicSend: bytes size: n [
     <250 70 sockfd bytes n>
-!
-!Socket
-send: aString
+]
+
+send: aString [
     self basicSend: aString size: (aString size).
-!
+]
+].
 
-+Socket subclass: #TCPSocket variables: #()
-=TCPSocket
-create
+Socket subclass: #TCPSocket variables: #().
+
+TCPSocket extend [
+create [
     <250 11>.
-!
+]
+].
 
-+Object subclass: #SocketTest variables: #()
-=SocketTest
-lookupHost: hostName
+Object subclass: #SocketTest variables: #().
+
+SocketTest class extend [
+lookupHost: hostName [
     ^Inet firstIpStringFromHostname: hostName.
-!
-=SocketTest
-lookupWord: word
+]
+
+lookupWord: word [
     | s addr rc buf |
     s <- TCPSocket new.
     s socket: (TCPSocket create).
@@ -129,4 +135,5 @@ lookupWord: word
     s send: 'QUIT ' + (Char cr asString) + (String newline).
     buf <- s recvAll.
     s close.
-!
+]
+].

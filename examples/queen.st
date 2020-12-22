@@ -1,67 +1,76 @@
-/ eight queens exercise
-+Object subclass: #NullQueen 
-!NullQueen
-first
+" eight queens exercise "
+Object subclass: #NullQueen.
+
+NullQueen extend [
+first [
 	^ true
-!
-!NullQueen
-next
+]
+
+next [
 	^ false
-!
-!NullQueen
-checkRow: row column: column
+]
+
+checkRow: row column: column [
 	^ false
-!
-!NullQueen
-result
+]
+
+result [
 	^ List new
-!
-+Object subclass: #Queen variables: #(row column neighbor)
-!Queen
-setColumn: aNumber neighbor: aQueen
+]
+].
+
+Object subclass: #Queen variables: #(row column neighbor).
+
+Queen extend [
+setColumn: aNumber neighbor: aQueen [
 	column <- aNumber.
 	neighbor <- aQueen
-!
-!Queen
-checkRow: testRow column: testColumn | columnDifference |
+]
+
+checkRow: testRow column: testColumn [
+	| columnDifference |
 	columnDifference <- testColumn - column.
 	(((row = testRow) or:
 		[ row + columnDifference = testRow]) or:
 		[ row - columnDifference = testRow])
 			ifTrue: [ ^ true ].
 	^ neighbor checkRow: testRow column: testColumn
-!
-!Queen
-first
+]
+
+first [
 	neighbor first.
 	row <- 1.
 	^ self testPosition
-!
-!Queen
-next
+]
+
+next [
 	^ self advance and: [ self testPosition ]
-!
-!Queen
-advance
+]
+
+advance [
 	(row = 8)
 		ifTrue: [ neighbor next ifFalse: [ ^ false ].
 			row <- 0 ].
 	row <- row + 1.
 	^ true
-!
-!Queen
-testPosition
+]
+
+testPosition [
 	[ neighbor checkRow: row column: column ]
 		whileTrue: [ self advance ifFalse: [ ^ false ]].
 	^ true
-!
-!Queen
-result	
+]
+
+result [
 	^ neighbor result; addLast: row
-!
-+Object subclass: #Main
-!Main
-run	| lastQueen |
+]
+].
+
+Object subclass: #Main.
+
+Main extend [
+run [
+	| lastQueen |
 	lastQueen <- NullQueen new.
 	1 to: 8 do: [:i | lastQueen <- Queen new; 
 		setColumn: i neighbor: lastQueen ].
@@ -73,6 +82,7 @@ run	| lastQueen |
 		[
 	lastQueen result do: [:x | x print. ' ' print ].
 	Char newline print ]
-!
-+Main new run
-/end
+]
+].
+
+Main new run.

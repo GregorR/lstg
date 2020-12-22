@@ -1,5 +1,6 @@
-!Method
-disassemble: indent at: initPC for: initCount | pc low high count needCR |
+Method extend [
+disassemble: indent at: initPC for: initCount [
+	| pc low high count needCR |
 	pc <- initPC.
 	count <- initCount.
 	[ count > 0 ] whileTrue: [
@@ -207,8 +208,9 @@ disassemble: indent at: initPC for: initCount | pc low high count needCR |
 			Char newline print
 		]
 	]
-!
-!Method
-disassemble
+]
+
+disassemble [
 	self disassemble: 1 at: 1 for: (byteCodes size)
-!
+]
+].
