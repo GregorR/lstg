@@ -83,7 +83,7 @@ RAWCLASS SmallInt   MetaSmallInt Number
 CLASS Link          Object            value next
 CLASS Node          Object            value left right
 CLASS Interval      Collection        low high step
-CLASS File          Object            fileID fileName lineNum
+CLASS File          Object            fileID fileName
 CLASS Association	Magnitude	key value
 CLASS Tree		Collection	root
 COMMENT ---------- Classes having to do with parsing ------------
@@ -2467,7 +2467,6 @@ withName: nm withFileID: fid
 	fileID isNil ifFalse: [ ^ self error: 'already opened' ].
 	fileName <- nm.
 	fileID <- fid.
-	lineNum <- 1.
 	^ self
 !
 METHOD File
@@ -2512,7 +2511,6 @@ METHOD File
 readChar	| c |
 		" read a single character from a file "
 	c <- self doRead.
-	c = 10 ifTrue: [ lineNum <- lineNum + 1 ].
 	c notNil ifTrue: [ ^ Char new: c ].
 	^ c
 !
@@ -2527,7 +2525,6 @@ readLine	| value  c nl |
 	  c <- Char new: c.
 	  c ~= nl ] whileTrue:
 		[ value <- value + c asString ].
-	lineNum <- lineNum + 1.
 	^ value
 !
 METHOD File
@@ -2537,56 +2534,62 @@ readFile
 	self primitiveFailed
 !
 METHOD File
-fileInDispatch: cmd | c |
+fileInDispatch: cmd atLine: line | c rline |
 	" Immediate execte "
 	cmd = $+ ifTrue: [
 		self readLine doIt printNl.
-		^ self
+		^ line + 1
 	].
 
 	" Method definition "
 	(cmd = $! or: [ cmd = $=]) ifTrue: [
-		self methodCommand: cmd = $!.
-		^ self
+		^ self methodCommand: (cmd = $!) atLine: line
 	].
 
 	" Comment enclosed in quotes... find matching quote "
 	(cmd = $") ifTrue: [
+		rline <- line.
 		[ c <- self readChar. c ~= $" ] whileTrue: [
 			" Consume chars until closing quote "
+			(c = Char newline) ifTrue: [rline <- line + 1].
 			nil
 		].
-		^ self
+		^ rline
 	].
 
 	" Blank line, just return to process next line "
 	(cmd = Char newline) ifTrue: [
-		^ self
+		^ line + 1
 	].
 
 	" It is random chars (treat as comment--discard) "
-	self readLine
+	self readLine.
+	^ line + 1
 !
 METHOD File
-fileIn		| cmd |
+fileIn		| line cmd |
+	line <- 1.
 	[ cmd <- self readChar. cmd notNil ] whileTrue: [
-		self fileInDispatch: cmd
+		line <- (self fileInDispatch: cmd atLine: line)
 	]
 !
 METHOD File
-methodCommand: classCmd | name aClass text line startLineNum |
+methodCommand: classCmd atLine: inLineNum | name aClass text line startLineNum lineNum |
 	name <- self readLine asSymbol.
 	aClass <- globals at: name ifAbsent: [ ^ self error:
 		'unknown class name in file-in: ' + name printString ].
 	text <- ''.
-	startLineNum <- lineNum.
+	startLineNum <- inLineNum + 1.
+	lineNum <- startLineNum.
 	[ line <- self readLine.
+	  lineNum <- lineNum + 1.
 	  line isNil ifTrue: [ ^ self error:
 		'unexpected end of input during fileIn' ].
 	  line ~= '!'] whileTrue: [ text <- text + line + String newline ].
 	classCmd
 		ifTrue: [ aClass addMethod: text fromFile: fileName atLine: startLineNum ]
-		ifFalse: [ aClass class addMethod: text fromFile: fileName atLine: startLineNum ]
+		ifFalse: [ aClass class addMethod: text fromFile: fileName atLine: startLineNum ].
+	^ lineNum
 !
 METHOD File
 at: idx
