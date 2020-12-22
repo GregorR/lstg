@@ -94,11 +94,11 @@ bin/imageBuilder: ImageBuilder/imageBuilder.c
 	mkdir -p bin
 	$(HOST_CC) -o $@ $^ $(HOST_CFLAGS) $(HOST_LDFLAGS)
 
-LittleSmalltalk.image: source/imageSource.st bin/imageBuilder
+LittleSmalltalk.image: st-source/imageSource.st bin/imageBuilder
 	$ ./bin/imageBuilder
 
-lstg.image: source/betterRepl.st bin/st LittleSmalltalk.image
-	printf 'File fileIn: '\''source/betterRepl.st'\''.\nFile image: '\''lstg.image'\''.\n' | ./bin/st -i LittleSmalltalk.image
+lstg.image: st-source/betterRepl.st bin/st LittleSmalltalk.image
+	printf 'File fileIn: '\''st-source/betterRepl.st'\''.\nFile image: '\''lstg.image'\''.\n' | ./bin/st -i LittleSmalltalk.image
 
 lstg.h: lstg.image
 	xxd -i $< > $@

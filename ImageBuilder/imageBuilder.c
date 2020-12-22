@@ -46,7 +46,7 @@
 #include "memory.h"
 #include "interp.h"
 
-#define defaultInputName "source/imageSource.st"
+#define defaultInputName "st-source/imageSource.st"
 #define defaultImageName "LittleSmalltalk.image"
 FILE           *fin;
 char            inputBuffer[4096],
