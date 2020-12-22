@@ -7,21 +7,21 @@ EFLAGS=\
 	-s MODULARIZE=1 \
 	-s ALLOW_MEMORY_GROWTH=1
 
-all: lst.asm.js lst.wasm.js
+all: lstg.asm.js lstg.wasm.js
 
-lst.asm.js: bin/st.o
+lstg.asm.js: bin/lstg.o
 	emcc $(CFLAGS) $(EFLAGS) -s WASM=0 \
-		bin/st.o -o $@
+		bin/lstg.o -o $@
 
-lst.wasm.js: bin/st.o
+lstg.wasm.js: bin/lstg.o
 	emcc $(CFLAGS) $(EFLAGS) \
-		bin/st.o -o $@
+		bin/lstg.o -o $@
 
-bin/st.o:
+bin/lstg.o:
 	$(MAKE) CC=emcc CFLAGS="$(CFLAGS)" EXE_EXT=.o
 
 clean:
-	$(MAKE) clean
-	rm -f lst.asm.js lst.wasm.js lst.wasm.wasm
+	$(MAKE) clean EXE_EXT=.o
+	rm -f lstg.asm.js lstg.wasm.js lstg.wasm.wasm
 
-.PRECIOUS: lst.wasm.wasm
+.PRECIOUS: lstg.wasm.wasm
