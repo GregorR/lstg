@@ -50,7 +50,7 @@ for: x
 !ClassExtension
 extend: str | p node |
 	p <- Parser new fromExtendBlock: str instanceVars: class instanceVariables.
-	node <- p parseClassBlock: class class variables.
+	node <- p parseExtendBlock: class class variables.
 	node classMethods do: [:m|
 		class class addMethod: m text fromFile: m file atLine: m line.
 	].
@@ -74,7 +74,7 @@ subclass: nm extend: str
 subclass: nm classVariables: cv extend: str | p node c |
 	" Parse the extend first to get variables "
 	p <- Parser new fromExtendBlock: str instanceVars: (Array new: 0).
-	node <- p parseClassBlock: cv.
+	node <- p parseExtendBlock: cv.
 	node isNil ifTrue: [^nil].
 
 	" Make the subclass "
@@ -202,9 +202,34 @@ readStringBlock | begin ln nesting nested push pop c i |
 	^nil
 !
 
+" Create a parser from an extend block "
+!Parser
+fromExtendBlock: aString instanceVars: anArray | line c |
+	" Extend blocks have the filename on a line, then the line number on a "
+	" line, then the actual text of the block "
+	self fileName: '' lineNum: 1 text: aString instanceVars: anArray.
+
+	" Read the file name "
+	line <- ''.
+	c <- self currentChar.
+	[ c = Char newline ] whileFalse: [
+		line <- line + c asString.
+		c <- self nextChar.
+	].
+	fileName <- line.
+
+	" And the line number "
+	line <- ''.
+	[ c <- self nextChar. c = Char newline ] whileFalse: [
+		line <- line + c asString.
+	].
+	self nextChar.
+	lineNum <- line asNumber.
+!
+
 " Parse a blockalike that contains a class declaration "
 !Parser
-parseClassBlock: inClassVars | classVars iv ms cms isClassMethod mn mna mb beforeName afterName ln p meth node |
+parseExtendBlock: inClassVars | classVars iv ms cms isClassMethod mn mna mb beforeName afterName ln p meth node |
 	classVars <- inClassVars.
 	classVars isNil ifTrue: [classVars <- (Array new: 0)].
 	iv <- classVars + instNames.
@@ -212,6 +237,7 @@ parseClassBlock: inClassVars | classVars iv ms cms isClassMethod mn mna mb befor
 	cms <- List new.
 
 	[true] whileTrue: [
+		self skipBlanks.
 		beforeName <- index.
 		ln <- lineNum.
 		self nextLex.
@@ -221,6 +247,7 @@ parseClassBlock: inClassVars | classVars iv ms cms isClassMethod mn mna mb befor
 			" This is instance variable declarations "
 			iv <- classVars + self readMethodVariables.
 			beforeName <- index.
+			self skipBlanks.
 			ln <- lineNum.
 			self nextLex.
 		].
@@ -456,27 +483,29 @@ replCmdAndPrint: doPrint | prefix i |
 		^self replCmdAndPrint: doPrint
 	].
 
-	self replCodeAndPrint: doPrint.
+	(self replCodeAndPrint: doPrint) ifTrue: [
+		^self replCmdAndPrint: doPrint
+	].
 !
 
 !REPL
 replCodeAndPrint: doPrint | p ln stmt text meth res |
 	p <- Parser new fileName: fileName lineNum: lineNum text: cmd instanceVars: (Array new: 0).
-	[
-		ln <- lineNum.
-		stmt <- p readStringBlock.
-		stmt isNil
-	] whileFalse: [
-		self trimCmd: p index.
+	ln <- lineNum.
+	stmt <- p readStringBlock.
+	stmt isNil ifTrue: [^false].
 
-		text <- 'step ^' + stmt.
-		meth <- (globals at: #REPLInstance) addMethod: text fromFile: fileName atLine: ln.
-		meth isNil ifFalse: [
-			res <- (Context new perform: meth withArguments: (Array with: inst)).
-			doPrint ifTrue: [res printNl.].
-			(globals at: #REPLInstance) removeMethod: #step.
-		].
+	self trimCmd: p index.
+
+	text <- 'step ^' + stmt.
+	meth <- (globals at: #REPLInstance) addMethod: text fromFile: fileName atLine: ln.
+	meth isNil ifFalse: [
+		res <- (Context new perform: meth withArguments: (Array with: inst)).
+		doPrint ifTrue: [res printNl.].
+		(globals at: #REPLInstance) removeMethod: #step.
 	].
+
+	^true
 !
 
 !REPL

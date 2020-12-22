@@ -2644,28 +2644,6 @@ text: aString instanceVars: anArray
 	^ self fileName: '(input)' lineNum: 1 text: aString instanceVars: anArray
 !
 METHOD Parser
-fromExtendBlock: aString instanceVars: anArray | line c |
-	" Extend blocks have the filename on a line, then the line number on a "
-	" line, then the actual text of the block "
-	self fileName: '' lineNum: 1 text: aString instanceVars: anArray.
-
-	" Read the file name "
-	line <- ''.
-	c <- self currentChar.
-	[ c = Char newline ] whileFalse: [
-		line <- line + c asString.
-		c <- self nextChar.
-	].
-	fileName <- line.
-
-	" And the line number "
-	line <- ''.
-	[ c <- self nextChar. c = Char newline ] whileFalse: [
-		line <- line + c asString.
-	].
-	lineNum <- line asNumber.
-!
-METHOD Parser
 parse: c with: encoderClass	| encoder meth name startLineNum |
 	" note -- must call text:instanceVars: first "
 	startLineNum <- lineNum.
