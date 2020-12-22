@@ -35,11 +35,11 @@ Object subclass: #Browser [
 showPos [
 	| cnt |
 	' == stack -> ' print.
-	cnt <- 0.
+	cnt := 0.
 	stack do: [:obj|
 		(cnt > 0) ifTrue: [ ' / ' print ].
 		obj print.
-		cnt <- cnt + 1
+		cnt := cnt + 1
 	].
 	'' printNl
 ]
@@ -49,7 +49,7 @@ showPos [
 "
 ivars: obj [
 	| iv |
-	iv <- obj class instanceVariables.
+	iv := obj class instanceVariables.
 	1 to: iv size do: [:idx|
 		idx print. Char tab print.
 		(iv at: idx) print. ': ' print.
@@ -64,13 +64,13 @@ run: args on: obj [
 	| t cl |
 	" Assemble arguments into single String "
 	args do: [:arg|
-		t isNil ifTrue: [ t <- arg ]
-		 ifFalse: [ t <- t + ' ' + arg ]
+		t isNil ifTrue: [ t := arg ]
+		 ifFalse: [ t := t + ' ' + arg ]
 	].
 
 	" Compile into xxBrowse Method for object's class "
-	cl <- obj class.
-	t <- 'xxBrowse' + String newline + String tab + '^ ' + t.
+	cl := obj class.
+	t := 'xxBrowse' + String newline + String tab + '^ ' + t.
 	(cl addMethod: t) notNil ifTrue: [
 		" Compile OK, run and print result "
 		obj xxBrowse printNl.
@@ -84,42 +84,42 @@ run: args on: obj [
 "
 on: top [
 	| cmd done last obj args idx |
-	stack <- Array with: top.
+	stack := Array with: top.
 	[true] whileTrue: [
 		" Show where we are and get next command "
 		self showPos.
 
 		" Get next command, explode into cmd/args "
 		'Browse> ' print.
-		cmd <- String input.
+		cmd := String input.
 		(cmd isNil) ifTrue: [ ^ nil ].
-		args <- cmd break: ' '.
-		cmd <- args at: 1.
-		args <- args from: 2.
+		args := cmd break: ' '.
+		cmd := args at: 1.
+		args := args from: 2.
 
 		" Get top of stack in its own variable "
-		obj <- stack at: (stack size).
-		done <- false.
+		obj := stack at: (stack size).
+		done := false.
 
 		" Index with at: "
 		((cmd = 'i') or: [cmd = 'index']) ifTrue: [
-			last <- stack at: (stack size).
-			idx <- (args at: 1) asNumber.
-			last <- last at: idx.
+			last := stack at: (stack size).
+			idx := (args at: 1) asNumber.
+			last := last at: idx.
 			last printNl.
-			done <- true
+			done := true
 		].
 
 		" Nest to last displayed object "
 		((cmd = 'n') or: [cmd = 'nest']) ifTrue: [
-			stack <- stack with: last.
-			done <- true
+			stack := stack with: last.
+			done := true
 		].
 
 		" Show class "
 		((cmd = 'c') or: [cmd = 'class']) ifTrue: [
 			obj class printNl.
-			done <- true
+			done := true
 		].
 
 		" Pop up a stack level "
@@ -127,39 +127,39 @@ on: top [
 			(stack size < 2) ifTrue: [
 				'Stack is empty' printNl
 			] ifFalse: [
-				stack <- stack from: 1 to: (stack size - 1)
+				stack := stack from: 1 to: (stack size - 1)
 			].
-			done <- true
+			done := true
 		].
 
 		" Raw index "
 		(cmd = 'ri') ifTrue: [
-			idx <- (args at: 1) asNumber.
-			last <- Object in: obj at: idx.
+			idx := (args at: 1) asNumber.
+			last := Object in: obj at: idx.
 			last printNl.
-			done <- true
+			done := true
 		].
 
 		" List instance variables "
 		((cmd = 'iv') or: [cmd = 'ivars']) ifTrue: [
 			self ivars: obj.
-			done <- true
+			done := true
 		].
 
 		" Show size "
 		((cmd = 'bs') or: [cmd = 'basicsize']) ifTrue: [
 			obj basicSize printNl.
-			done <- true
+			done := true
 		].
 		((cmd = 'sz') or: [cmd = 'size']) ifTrue: [
 			obj size printNl.
-			done <- true
+			done := true
 		].
 
 		" Print arbitrary expression "
 		((cmd = 'p') or: [cmd = 'print']) ifTrue: [
 			self run: args on: obj.
-			done <- true
+			done := true
 		].
 
 		" All done "

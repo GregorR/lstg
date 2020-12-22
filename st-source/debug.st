@@ -48,17 +48,17 @@ Object subclass: #Debug variables: #(proc bpoints prevList selctx).
 DebugEncoder extend [
 name: n [
 	" Hook to set up our instance variables "
-	lines <- Dictionary new.
-	oldLine <- 0.
+	lines := Dictionary new.
+	oldLine := 0.
 	^ super name: n
 ]
 
 genCode: byte [
 	" Record code generated versus line number "
 	oldRange isNil ifTrue: [
-		oldRange <- lines at: oldLine ifAbsent: [nil].
+		oldRange := lines at: oldLine ifAbsent: [nil].
 		oldRange isNil ifTrue: [
-			oldRange <- Set new.
+			oldRange := Set new.
 			lines at: oldLine put: oldRange
 		]
 	].
@@ -69,17 +69,17 @@ genCode: byte [
 lineNum: l [
 	" Note when the line number changes "
 	(l ~= oldLine) ifTrue: [
-		oldLine <- l.
+		oldLine := l.
 		" We lazily insert the range, only at the point we
 		  actually see some code generated for this source line."
-		oldRange <- nil
+		oldRange := nil
 	]
 ]
 
 method: maxTemps class: c fileName: fileName lineNum: lineNum text: text [
 	| ret |
 	" Create the compiled Method from the generated code "
-	ret <- DebugMethod name: name byteCodes: byteCodes
+	ret := DebugMethod name: name byteCodes: byteCodes
 		literals: literals stackSize: maxStack
 		temporarySize: maxTemps class: c fileName: fileName lineNum:
 		lineNum text: text.
@@ -95,10 +95,10 @@ setDebug: sel [
 	  debug information. "
 
 	" Chase up the superclass chain, trying to find our Method "
-	cl <- self.
+	cl := self.
 	[meth isNil] whileTrue: [
-		dict <- cl methods.
-		meth <- dict at: sel ifAbsent: [ cl <- cl superclass. nil].
+		dict := cl methods.
+		meth := dict at: sel ifAbsent: [ cl := cl superclass. nil].
 		cl isNil ifTrue: [
 			('Undefined method ' + sel printString +
 				' for class ' + self printString) printNl.
@@ -111,7 +111,7 @@ setDebug: sel [
 		'Compiling ' print. sel printString print.
 		' for class ' print. cl print.
 		'...' printNl.
-		meth <- (Parser new
+		meth := (Parser new
 			fileName: meth file
 			lineNum: meth line
 			text: meth text
@@ -134,12 +134,12 @@ Debug extend [
 runIt: count [
 	| ret |
 	" Blow away any selected context when we run "
-	selctx <- nil.
+	selctx := nil.
 
 	" Execute for one instruction.  Return whether or not the return
 	 was 'normal' (i.e., VM stopped due to debugger control, not
 	 something else.  Spit out a message for a breakpoint. "
-	ret <- proc doExecute: count+1.
+	ret := proc doExecute: count+1.
 	(ret = 5) ifTrue: [ ^ true ].
 	(ret = 6) ifTrue: [ self onBreak. ^ true ].
 	(ret = 2) ifTrue: [ 'Error trap' printNl ].
@@ -185,7 +185,7 @@ Debug extend [
 srcLine: ctx [
 	| meth line |
 	" Get source line corresponding to current byte pointer "
-	meth <- ctx method.
+	meth := ctx method.
 
 	" Can't show it if this isn't a debuggable method "
 	(meth isKindOf: DebugMethod) ifFalse: [
@@ -202,10 +202,10 @@ showLine: ctx [
 	| line meth |
 	" Show source line corresponding to current VM instruction "
 	ctx isNil ifTrue: [ ^ nil ].
-	meth <- ctx method.
+	meth := ctx method.
 	'Method ' print.  meth name print.
 	' for class ' print.  meth forClass print.
-	line <- self srcLine: ctx.
+	line := self srcLine: ctx.
 	line isNil
 		ifTrue: [
 			': no source displayed.' printNl
@@ -231,13 +231,13 @@ run: line [
 	| meth ret ctx proc |
 	" Run a command line under the debugger"
 
-	meth <- (Parser new text: ('debugCmd ^' + line) instanceVars: #())
+	meth := (Parser new text: ('debugCmd ^' + line) instanceVars: #())
 		 parse: Undefined with: DebugEncoder.
 	meth notNil ifTrue: [
-		ret <- super new.
-		ctx <- Context new.
+		ret := super new.
+		ctx := Context new.
 		ctx setup: meth withArguments: (Array new: 1).
-		proc <- Process new.
+		proc := Process new.
 		proc context: ctx.
 		ret proc: proc.
 		ret run
@@ -248,8 +248,8 @@ run: line [
 Debug extend [
 proc: p [
 	" Initialize our new debug session "
-	proc <- p.
-	bpoints <- Array new: 0
+	proc := p.
+	bpoints := Array new: 0
 ]
 
 atCall [
@@ -257,24 +257,24 @@ atCall [
 	" Tell if the VM instruction pointer is at a method invocation "
 
 	" Get the next instruction "
-	ctx <- proc context.
-	meth <- ctx method.
-	pc <- ctx bytePointer.
-	high <- meth byteCodes at: (pc + 1) ifAbsent: [ ^ nil ].
-	pc <- pc + 1.
-	low <- high rem: 16.
-	high <- high quo: 16.
+	ctx := proc context.
+	meth := ctx method.
+	pc := ctx bytePointer.
+	high := meth byteCodes at: (pc + 1) ifAbsent: [ ^ nil ].
+	pc := pc + 1.
+	low := high rem: 16.
+	high := high quo: 16.
 	(high = 0) ifTrue: [
-		high <- low.
-		low <- meth byteCodes at: (pc + 1) ifAbsent: [ ^ nil ].
-		pc <- pc + 1
+		high := low.
+		low := meth byteCodes at: (pc + 1) ifAbsent: [ ^ nil ].
+		pc := pc + 1
 	].
 
 	" Return nil if it isn't a SendMessage "
 	(high = 9) ifFalse: [ ^ nil ].
 
 	" Otherwise return the selector and return address "
-	ret <- Array new: 2.
+	ret := Array new: 2.
 	ret at: 1 put: (meth literals at: (low + 1)).
 	ret at: 2 put: pc.
 	^ ret
@@ -283,12 +283,12 @@ atCall [
 stepCall: sel [
 	| ctx stack sp args target meth |
 	" Set up to step into a new method "
-	ctx <- proc context.
-	stack <- ctx stack.
-	sp <- ctx stackTop.
-	args <- stack at: sp.
-	target <- args at: 1.
-	meth <- target class setDebug: sel.
+	ctx := proc context.
+	stack := ctx stack.
+	sp := ctx stackTop.
+	args := stack at: sp.
+	target := args at: 1.
+	meth := target class setDebug: sel.
 	meth isNil ifTrue: [ ^ true ].
 	(self runIt: 1) ifFalse: [
 		'Execution done in ' print.
@@ -304,11 +304,11 @@ onBreak [
 	| ctx meth rec |
 	" Tell if we're at a breakpoint.  As a side effect, display
 	  this fact to the user."
-	ctx <- proc context.
+	ctx := proc context.
 	ctx isNil ifTrue: [ ^ false ].
-	meth <- ctx method.
+	meth := ctx method.
 	1 to: bpoints size do: [:idx|
-		rec <- bpoints at: idx.
+		rec := bpoints at: idx.
 		(((rec at: 1) = meth) and:
 				[(rec at: 2) = (self srcLine: ctx)])
 		ifTrue: [
@@ -324,8 +324,8 @@ onBreak [
 overCall: pc [
 	| ctx old res meth |
 	" Set a breakpoint at the instruction beyond the SendMessage "
-	ctx <- proc context.
-	meth <- ctx method.
+	ctx := proc context.
+	meth := ctx method.
 
 	" If we're within a non-debug Method, just limp forward "
 	(meth isKindOf: DebugMethod) ifFalse: [
@@ -341,7 +341,7 @@ overCall: pc [
 	" Now let it run until it hits the breakpoint, and clear
 	  the breakpoint. "
 	self breakActive: true. meth breakActive: true.
-	res <- self runIt: -1.
+	res := self runIt: -1.
 	self breakActive: false.  meth clearBreak: pc.
 	res ifTrue: [
 		" Should be stopped at the expected location "
@@ -369,12 +369,12 @@ doStep: intoCalls [
 	| srcl ret ctx |
 	" Implement a single step, stepping either over or into calls
 	  (method invocations) depending on the intoCalls argument. "
-	ctx <- proc context.
-	srcl <- self srcLine: ctx.
+	ctx := proc context.
+	srcl := self srcLine: ctx.
 	[(proc context == ctx) and:
 			[srcl == (self srcLine: ctx)]] whileTrue: [
 		" If dropping into a new method, deal with it "
-		ret <- self atCall.
+		ret := self atCall.
 		ret notNil ifTrue: [
 			" Stepping into the call "
 			intoCalls ifTrue: [
@@ -419,8 +419,8 @@ whatis: args [
 	  VM registers. "
 
 	" Get the DebugMethod, which has symbolic information for variables "
-	ctx <- self curContext.
-	meth <- ctx method.
+	ctx := self curContext.
+	meth := ctx method.
 	(meth isKindOf: DebugMethod) ifFalse: [
 		'No debug information for ' print.
 		meth name printNl.
@@ -445,8 +445,8 @@ examine: args [
 	  VM registers. "
 
 	" Get the DebugMethod, which has symbolic information for variables "
-	ctx <- self curContext.
-	meth <- ctx method.
+	ctx := self curContext.
+	meth := ctx method.
 	(meth isKindOf: DebugMethod) ifFalse: [
 		'No debug information for ' print.
 		meth name printNl.
@@ -471,21 +471,21 @@ setBreak: args [
 	" Set a breakpoint "
 
 	" Map straight line # to current class/method "
-	arg <- args at: 1.
+	arg := args at: 1.
 	((arg at: 1) isDigit) ifTrue: [
-		lineNum <- arg asNumber.
+		lineNum := arg asNumber.
 		lineNum isNil ifTrue: [
 			'Bad line #' print. arg printNl.
 			^ nil
 		].
-		meth <- self curContext method.
-		arg <- (meth forClass printString) + '/' +
+		meth := self curContext method.
+		arg := (meth forClass printString) + '/' +
 			(meth name printString) + '/' +
 			lineNum printString
 	].
 
 	" Parse <class>:<method> "
-	s <- arg break: '/'.
+	s := arg break: '/'.
 	(s size < 2) ifTrue: [
 		'Format is <class>/<method>' printNl.
 		^ nil
@@ -494,48 +494,48 @@ setBreak: args [
 	" Look up in instance methods unless it's Meta<class>,
 	  in which case trim the 'Meta' and look up in class
 	  methods."
-	clname <- s at: 1.
+	clname := s at: 1.
 	((clname from: 1 to: 4) = 'Meta') ifTrue: [
-		inClass <- true.
-		clname <- clname from: 5 to: clname size
+		inClass := true.
+		clname := clname from: 5 to: clname size
 	] ifFalse: [
-		inClass <- false
+		inClass := false
 	].
-	clname <- clname asSymbol.
-	methname <- (s at: 2) asSymbol.
+	clname := clname asSymbol.
+	methname := (s at: 2) asSymbol.
 
 	" Parse line number "
 	(s size > 2) ifTrue: [
-		lineNum <- (s at: 3) asNumber.
+		lineNum := (s at: 3) asNumber.
 		lineNum isNil ifTrue: [
 			'Bad line #' print. (s at: 3) printNl.
 			^ nil
 		]
 	] ifFalse: [
-		lineNum <- 1
+		lineNum := 1
 	].
 
 	" Find class "
-	cl <- Smalltalk at: clname ifAbsent: [
+	cl := Smalltalk at: clname ifAbsent: [
 		('Unknown class: ' + clname printString) printNl.
 		^ nil
 	].
 
 	" Convert to metaclass if needed "
 	inClass ifTrue: [
-		cl <- cl class
+		cl := cl class
 	].
 
 	" Now get method, in its debuggable format "
-	meth <- cl setDebug: methname.
+	meth := cl setDebug: methname.
 	meth isNil ifTrue: [
 		('Unknown method: ' + methname printString) printNl.
 		^ nil
 	].
 
 	" If it's already set, don't do it again "
-	rec <- Array with: meth with: lineNum.
-	i <- bpoints indexOfVal: rec.
+	rec := Array with: meth with: lineNum.
+	i := bpoints indexOfVal: rec.
 	i notNil ifTrue: [
 		'Already set as breakpoint ' print.
 		i printNl.
@@ -543,7 +543,7 @@ setBreak: args [
 	].
 
 	" See if we can turn line # into a code location "
-	loc <- meth codeLoc: lineNum.
+	loc := meth codeLoc: lineNum.
 	loc isNil ifTrue: [
 		'No code for source line ' print. lineNum printNl.
 		^ nil
@@ -551,26 +551,26 @@ setBreak: args [
 
 	" Set & record the breakpoint "
 	meth setBreak: loc.
-	bpoints <- bpoints with: rec
+	bpoints := bpoints with: rec
 ]
 
 clearBreak: args [
 	| arg n rec meth lineNum |
 	" Delete an existing breakpoint "
 
-	arg <- args at: 1 ifAbsent: ['Missing argument' printNl. ^ nil].
-	n <- arg asNumber.
+	arg := args at: 1 ifAbsent: ['Missing argument' printNl. ^ nil].
+	n := arg asNumber.
 	n isNil ifTrue: [
 		('Invalid argument: ' + arg) printNl
 	] ifFalse: [
 		((n < 1) or: [n > bpoints size]) ifTrue: [
 			('No such breakpoint: ' + arg) printNl
 		] ifFalse: [
-			rec <- bpoints at: n.
-			meth <- rec at: 1.
-			lineNum <- rec at: 2.
+			rec := bpoints at: n.
+			meth := rec at: 1.
+			lineNum := rec at: 2.
 			meth clearBreak: (meth codeLoc: lineNum).
-			bpoints <- bpoints removeIndex: n.
+			bpoints := bpoints removeIndex: n.
 			n print. ': deleted' printNl
 		]
 	]
@@ -583,9 +583,9 @@ listBreak [
 	'Breakpoints:' printNl.
 	1 to: bpoints size do: [:x|
 		x print. ': ' print.
-		rec <- bpoints at: x.
-		meth <- rec at: 1.
-		lineNum <- rec at: 2.
+		rec := bpoints at: x.
+		meth := rec at: 1.
+		lineNum := rec at: 2.
 		meth name printString print. '/' print.
 		lineNum printNl
 	]
@@ -595,7 +595,7 @@ breakActive: flag [
 	| meths |
 	" Make all our breakpoints active or inactive, depending
 	  on flag's value. "
-	meths <- Set new.
+	meths := Set new.
 	bpoints do: [:rec|
 		meths add: (rec at: 1)
 	].
@@ -607,8 +607,8 @@ list: args [
 	" List source code "
 
 	" Get the method we're going to display "
-	ctx <- self curContext.
-	meth <- ctx method.
+	ctx := self curContext.
+	meth := ctx method.
 	(meth isKindOf: DebugMethod) ifFalse: [
 		'No debug information' printNl.
 		^ self
@@ -618,12 +618,12 @@ list: args [
 	(args size < 1) ifTrue: [
 		prevList isNil ifTrue: [
 			" List around where we're currently executing "
-			where <- (self srcLine: ctx) - 5
+			where := (self srcLine: ctx) - 5
 		] ifFalse: [
-			where <- prevList + 1
+			where := prevList + 1
 		]
 	] ifFalse: [
-		where <- (args at: 1) asNumber.
+		where := (args at: 1) asNumber.
 		where isNil ifTrue: [
 			'Invalid line number: ' print.
 			(args at: 1) printNl.
@@ -632,12 +632,12 @@ list: args [
 	].
 
 	" Show 9 lines "
-	src <- meth textlines.
+	src := meth textlines.
 	where to: (where + 8) do: [:x|
 		((x > 0) and: [x <= src size]) ifTrue: [
 			(x printString printWidth: 8) print.
 			(src at: x) printNl.
-			prevList <- x
+			prevList := x
 		]
 	]
 ]
@@ -650,10 +650,10 @@ list: args [
 "
 nextContext: ctx [
 	| c prev |
-	c <- proc context.
-	[(prev <- c previousContext) ~= ctx] whileTrue: [
+	c := proc context.
+	[(prev := c previousContext) ~= ctx] whileTrue: [
 		prev isNil ifTrue: [ ^ nil ].
-		c <- prev
+		c := prev
 	].
 	^ c
 ]
@@ -664,26 +664,26 @@ nextContext: ctx [
 upDown: up count: args [
 	| c count |
 	" If nothing selected, start from bottom of stack "
-	selctx <- self curContext.
+	selctx := self curContext.
 
 	" Get count, default 1 "
 	(args size > 0) ifTrue: [
-		count <- (args at: 1) asNumber
+		count := (args at: 1) asNumber
 	] ifFalse: [
-		count <- 1
+		count := 1
 	].
 
 	" Walk the context chain "
 	1 to: count do: [:ignore|
 		" Get next/prev context depending on step direction "
 		up ifTrue: [
-			c <- selctx previousContext
+			c := selctx previousContext
 		] ifFalse: [
-			c <- self nextContext: selctx
+			c := self nextContext: selctx
 		].
 
 		" Just ignore running off the end "
-		c isNil ifFalse: [ selctx <- c ]
+		c isNil ifFalse: [ selctx := c ]
 	]
 ]
 
@@ -695,20 +695,20 @@ makeDebug: args [
 	args do: [:clname|
 		" Map MetaFOO -> FOO class "
 		((clname from: 1 to: 4) = 'Meta') ifTrue: [
-			n <- clname from: 5.
-			meta <- true
+			n := clname from: 5.
+			meta := true
 		] ifFalse: [
-			n <- clname.
-			meta <- false
+			n := clname.
+			meta := false
 		].
 
 		" Look up class "
-		cl <- Smalltalk at: n asSymbol ifAbsent: [ nil ].
+		cl := Smalltalk at: n asSymbol ifAbsent: [ nil ].
 		cl isNil
 		 ifTrue: [ ('Unknown class: ' + clname) printNl ]
 		 ifFalse: [
 			" Map to metaclass if needed "
-			meta ifTrue: [ cl <- cl class ].
+			meta ifTrue: [ cl := cl class ].
 
 			" Convert methods "
 			cl methods keysDo: [:k| cl setDebug: k ]
@@ -720,41 +720,41 @@ run [
 	| prev did cmd done line |
 	" Main command loop for the debugger session "
 
-	prev <- ''.
-	done <- false.
+	prev := ''.
+	done := false.
 	[true] whileTrue: [
 		" Show where we are "
 		self showLine.
 
 		" Get command "
 		'Debug> ' print.
-		line <- String input.
+		line := String input.
 
 		" Re-insert previous command if empty line "
-		(line isEmpty) ifTrue: [ line <- prev ].
-		prev <- line.
+		(line isEmpty) ifTrue: [ line := prev ].
+		prev := line.
 
 		" Parse into words "
-		line <- line break: ' '.
+		line := line break: ' '.
 
 		" Command is first, arguments follow "
-		cmd <- line at: 1.
-		line <- line from: 2 to: line size.
+		cmd := line at: 1.
+		line := line from: 2 to: line size.
 
 		" Set flag to indicate command hasn't matched yet "
-		did <- false.
+		did := false.
 
 		" Step a single VM instruction "
 		(cmd = 'stepi') ifTrue: [
 			done
 			 ifTrue: [ 'Not runnable' printNl ]
 			 ifFalse: [
-				prevList <- nil.
+				prevList := nil.
 				(self runIt: 1) ifFalse: [
-					done <- true
+					done := true
 				]
 			].
-			did <- true
+			did := true
 		].
 
 		" Step a source line "
@@ -762,10 +762,10 @@ run [
 			done
 			 ifTrue: [ 'Not runnable' printNl ]
 			 ifFalse: [
-				 prevList <- nil.
-				 done <- self doStep: true
+				 prevList := nil.
+				 done := self doStep: true
 			 ].
-			did <- true
+			did := true
 		].
 
 		" Step a source line, stepping over message sends "
@@ -773,68 +773,68 @@ run [
 			done
 			 ifTrue: [ 'Not runnable' printNl ]
 			 ifFalse: [
-				 prevList <- nil.
-				 done <- self doStep: false
+				 prevList := nil.
+				 done := self doStep: false
 			 ].
-			did <- true.
+			did := true.
 		].
 
 		" Examine variables "
 		((cmd = 'p') or: [cmd = 'print']) ifTrue: [
 			self examine: line.
-			did <- true
+			did := true
 		].
 
 		" Describe variable "
 		(cmd = 'whatis') ifTrue: [
 			self whatis: line.
-			did <- true
+			did := true
 		].
 
 		" Set a breakpoint "
 		((cmd = 'b') or: [cmd = 'break']) ifTrue: [
 			self setBreak: line.
-			did <- true
+			did := true
 		].
 
 		" Clear breakpoint(s) "
 		((cmd = 'd') or: [cmd = 'delete']) ifTrue: [
 			self clearBreak: line.
-			did <- true
+			did := true
 		].
 
 		" List breakpoints "
 		((cmd = 'lb') or: [cmd = 'listbreak']) ifTrue: [
 			self listBreak.
-			did <- true
+			did := true
 		].
 
 		" Just let it run "
 		((cmd = 'cont') or: [cmd = 'c']) ifTrue: [
 			" Clear previous listing position "
-			prevList <- nil.
+			prevList := nil.
 
 			" Step forward once, even over a breakpoint "
-			done <- (self runIt: 1) not.
+			done := (self runIt: 1) not.
 
 			" Now run until completion or next break "
 			done ifFalse: [
 				" Activate, run, and deactivate "
 				self breakActive: true.
-				done <- (self runIt: -1) not.
+				done := (self runIt: -1) not.
 				self breakActive: false.
 
 				" Display a message if hit a breakpoint "
 				done ifFalse: [ self onBreak ].
 			].
 
-			did <- true
+			did := true
 		].
 
 		" Source listing "
 		((cmd = 'l') or: [cmd = 'list']) ifTrue: [
 			self list: line.
-			did <- true
+			did := true
 		].
 
 		" Abandon the method "
@@ -850,25 +850,25 @@ run [
 			] ifFalse: [
 				proc context backtrace
 			].
-			did <- true
+			did := true
 		].
 
 		" Go up or down the stack chain "
 		((cmd = 'up') or: [cmd = 'down']) ifTrue: [
 			self upDown: (cmd = 'up') count: line.
-			did <- true
+			did := true
 		].
 
 		" Make all procedures of the named class debuggable "
 		(cmd = 'debug') ifTrue: [
 			self makeDebug: line.
-			did <- true
+			did := true
 		].
 
 		" Hook to data structure browser "
 		((cmd = 'br') or: [cmd = 'browse']) ifTrue: [
 			self browse: line.
-			did <- true
+			did := true
 		].
 
 		" Error "
@@ -885,22 +885,22 @@ asLines [
 	  these lines. "
 
 	" Size the array of lines which will result "
-	nl <- Char newline.
-	ret <- Array new: (self occurencesOf: nl) + 1.
+	nl := Char newline.
+	ret := Array new: (self occurencesOf: nl) + 1.
 
 	" Walk the elements, assembling lines "
-	slot <- base <- idx <- 1.
-	top <- self size.
+	slot := base := idx := 1.
+	top := self size.
 	[idx < top] whileTrue: [
-		c <- self at: idx.
+		c := self at: idx.
 		(c = nl) ifTrue: [
 			ret at: slot put: (self from: base to: idx - 1).
-			slot <- slot + 1.
-			base <- idx + 1
+			slot := slot + 1.
+			base := idx + 1
 		].
-		idx <- idx + 1
+		idx := idx + 1
 	].
-	(idx > top) ifTrue: [ idx <- top ].
+	(idx > top) ifTrue: [ idx := top ].
 	(idx > base) ifTrue: [
 		ret at: slot put: (self from: base to: idx)
 	].
@@ -911,10 +911,10 @@ asLines [
 DebugMethod extend [
 debug: l [
 	" Hook to initialize our DebugMethod instance "
-	lines <- l.
-	textlines <- text asLines.
-	bpoints <- Dictionary new.
-	active <- false
+	lines := l.
+	textlines := text asLines.
+	bpoints := Dictionary new.
+	active := false
 ]
 
 debug [
@@ -927,7 +927,7 @@ textlines [
 
 args: argNames inst: instNames temp: tempNames [
 	" Record debug data "
-	vars <- Array new: 3.
+	vars := Array new: 3.
 	vars at: 1 put: argNames.
 	vars at: 2 put: instNames.
 	vars at: 3 put: tempNames
@@ -949,28 +949,28 @@ whatis: var in: ctx [
 	" Describe a variable in this Method "
 
 	" Name of an argument "
-	idx <- (vars at: 1) indexOfVal: var.
+	idx := (vars at: 1) indexOfVal: var.
 	idx notNil ifTrue: [
 		var print. ' is an argument' print.
-		obj <- ctx arguments at: idx
+		obj := ctx arguments at: idx
 	].
 
 	" Instance variable "
 	obj isNil ifTrue: [
-		idx <- (vars at: 2) indexOfVal: var.
+		idx := (vars at: 2) indexOfVal: var.
 		idx notNil ifTrue: [
 			var print. ' is an instance variable' print.
-			obj <- ctx arguments at: 1.
-			obj <- (Object class in: obj at: idx)
+			obj := ctx arguments at: 1.
+			obj := (Object class in: obj at: idx)
 		]
 	].
 
 	" Temporary "
 	obj isNil ifTrue: [
-		idx <- (vars at: 3) indexOfVal: var.
+		idx := (vars at: 3) indexOfVal: var.
 		idx notNil ifTrue: [
 			var print. ' is a temporary variable' print.
-			obj <- ctx temporaries at: idx
+			obj := ctx temporaries at: idx
 		]
 	].
 
@@ -991,17 +991,17 @@ getVar: var in: ctx [
 	" Get a variable in this Method, return its value "
 
 	" Name of an argument "
-	idx <- (vars at: 1) indexOfVal: var.
+	idx := (vars at: 1) indexOfVal: var.
 	idx notNil ifTrue: [ ^ (ctx arguments at: idx) ].
 
 	" Instance variable "
-	idx <- (vars at: 2) indexOfVal: var.
+	idx := (vars at: 2) indexOfVal: var.
 	idx notNil ifTrue: [
 		^ (Object in: (ctx arguments at: 1) at: idx)
 	].
 
 	" Temporary "
-	idx <- (vars at: 3) indexOfVal: var.
+	idx := (vars at: 3) indexOfVal: var.
 	idx notNil ifTrue: [ ^ (ctx temporaries at: idx) ].
 
 	" Couldn't find it... "
@@ -1011,7 +1011,7 @@ getVar: var in: ctx [
 print: var in: ctx [
 	| obj |
 	" Print a variable in this Method "
-	obj <- self getVar: var in: ctx.
+	obj := self getVar: var in: ctx.
 	obj isNil ifTrue: [ ('Unknown variable: ' + var) printNl ]
 	 ifFalse: [ obj printNl ]
 ]
@@ -1024,7 +1024,7 @@ setBreak: bp [
 	(bpoints includes: bp) ifTrue: [ ^ self ].
 
 	" Record current opcode at code location "
-	old <- byteCodes at: (bp + 1).
+	old := byteCodes at: (bp + 1).
 
 	" Update the code location if it's already active "
 	active ifTrue: [
@@ -1070,7 +1070,7 @@ breakActive: flag [
 	bpoints keysDo: [:bp|
 		self patchBreak: bp active: flag
 	].
-	active <- flag
+	active := flag
 ]
 
 codeLoc: xline [
@@ -1078,11 +1078,11 @@ codeLoc: xline [
 	" Map source line # to a code location "
 
 	" Get code generated for that line #, or return nil "
-	set <- lines at: xline ifAbsent: [ ^ nil ].
+	set := lines at: xline ifAbsent: [ ^ nil ].
 
 	" Return lowest code location "
-	ret <- set anyOne.
-	set do: [:elem| ret <- ret min: elem].
+	ret := set anyOne.
+	set do: [:elem| ret := ret min: elem].
 	^ ret
 ]
 ].
@@ -1091,8 +1091,8 @@ Debug extend [
 browse: args [
 	| meth br ctx |
 	" Get the DebugMethod, which has symbolic information for variables "
-	ctx <- self curContext.
-	meth <- ctx method.
+	ctx := self curContext.
+	meth := ctx method.
 	(meth isKindOf: DebugMethod) ifFalse: [
 		'No debug information for ' print.
 		meth name printNl.
@@ -1100,7 +1100,7 @@ browse: args [
 	].
 
 	" See if Browser is installed "
-	br <- Smalltalk at: #Browser ifAbsent: [
+	br := Smalltalk at: #Browser ifAbsent: [
 		'Browser not installed.' printNl.
 		^ nil
 	].

@@ -170,10 +170,10 @@ isMemberOf: aClass
 !
 METHOD Object
 isKindOf: aClass	| clas |
-	clas <- self class.
+	clas := self class.
 	[ clas notNil ] whileTrue:
 		[ clas == aClass ifTrue: [ ^ true ].
-		  clas <- clas superclass ].
+		  clas := clas superclass ].
 	^ false
 !
 METHOD Object
@@ -191,9 +191,9 @@ printNl
 METHOD Object
 question: text	| answer |
 	text print.
-	answer <- String input.
+	answer := String input.
 	(answer notNil)
-		ifTrue: [ answer <- answer at: 1 ifAbsent: [ $n ] ].
+		ifTrue: [ answer := answer at: 1 ifAbsent: [ $n ] ].
 	^ answer = $y or: [ answer = $Y]
 !
 METHOD Object
@@ -249,12 +249,12 @@ COMMENT ---------Class-------------------
 METHOD Class
 name: n parent: c variables: v
 	" create a new class with the given characteristics "
-	name <- n.
-	parentClass <- c.
-	methods <- Dictionary new.
-	size <- v size + c size.
-	variables <- v.
-	package <- nil.
+	name := n.
+	parentClass := c.
+	methods := Dictionary new.
+	size := v size + c size.
+	variables := v.
+	package := nil.
 !
 METHOD Class
 size
@@ -297,8 +297,8 @@ listMethods
 METHOD Class
 allMethods | allMethods |
 	parentClass isNil
-		ifTrue: [ allMethods <- Dictionary new ]
-		ifFalse: [ allMethods <- parentClass allMethods ].
+		ifTrue: [ allMethods := Dictionary new ]
+		ifFalse: [ allMethods := parentClass allMethods ].
 	methods binaryDo: [ :n :m | allMethods at: n put: m ].
 	^ allMethods
 !
@@ -308,16 +308,16 @@ listAllMethods
 !
 METHOD Class
 viewMethod: nm  | meth |
-	meth <- self allMethods at: nm
+	meth := self allMethods at: nm
 		ifAbsent: [ ^ self error: 'no such method'].
 	meth text print.
 	^ ''
 !
 METHOD Class
 editMethod: nm	| meth text |
-	meth <- methods at: nm
+	meth := methods at: nm
 		ifAbsent: [ ^ self error: 'no such method'].
-	text <- meth text edit.
+	text := meth text edit.
 	(self question: 'compile method?')
 		ifTrue: [ self addMethod: text ]
 !
@@ -332,10 +332,10 @@ subclass: nm variables: v
 !
 METHOD Class
 subclass: nm variables: v classVariables: cv | meta c |
-	meta <- Class new name: ('Meta' + nm asString) asSymbol
+	meta := Class new name: ('Meta' + nm asString) asSymbol
 		parent: self class
 		variables: cv.
-	c <- ( meta new name: nm
+	c := ( meta new name: nm
 		parent: self
 		variables: v ).
 	globals at: nm put: c.
@@ -343,13 +343,13 @@ subclass: nm variables: v classVariables: cv | meta c |
 !
 METHOD Class
 addMethod	| text |
-	text <- ' ' edit.
+	text := ' ' edit.
 	(self question: 'compile method?')
 		ifTrue: [ self addMethod: text ]
 !
 METHOD Class
 addMethod: text fromFile: fileName atLine: lineNum | meth |
-	meth <- self parseMethod: text fromFile: fileName atLine: lineNum.
+	meth := self parseMethod: text fromFile: fileName atLine: lineNum.
 	meth notNil ifTrue: [
 		methods at: meth name put: meth.
 		Method flushCache.
@@ -404,10 +404,10 @@ METHOD Class
 instanceVariables	| names |
 		" return all our variable names "
 	parentClass notNil
-		ifTrue: [ names <- parentClass instanceVariables ]
-		ifFalse: [ names <- Array new: 0 ].
+		ifTrue: [ names := parentClass instanceVariables ]
+		ifFalse: [ names := Array new: 0 ].
 	(variables isNil or: [ variables isEmpty ])
-		ifFalse: [ names <- names + variables ].
+		ifFalse: [ names := names + variables ].
 	^ names
 !
 METHOD Class
@@ -431,11 +431,11 @@ isMeta
 METHOD Class
 fileOut: f | tag |
 	self isMeta ifTrue: [
-		tag <- '=' + (name asString from: 5 to: 99)
+		tag := '=' + (name asString from: 5 to: 99)
 	] ifFalse: [
-		tag <- '!' + name asString
+		tag := '!' + name asString
 	].
-	tag <- tag + String newline.
+	tag := tag + String newline.
 	methods do: [:m|
 		f write: tag.
 		f write: (m text printString).
@@ -444,7 +444,7 @@ fileOut: f | tag |
 !
 METHOD Class
 fileOut | f |
-	f <- File openWrite: (name printString + '.st').
+	f := File openWrite: (name printString + '.st').
 	f isNil ifTrue: [ self error: 'File creation failed' ].
 	self isMeta ifFalse: [
 		self class fileOut: f
@@ -484,7 +484,7 @@ main	| command |
 	self initSingletons.
 
 	" main execution loop "
-	[ '-> ' print. command <- String input. command notNil ]
+	[ '-> ' print. command := String input. command notNil ]
 		whileTrue: [ command isEmpty
 			ifFalse: [ command doIt printNl ] ]
 !
@@ -591,7 +591,7 @@ doExecute: ticks
 !
 METHOD Process
 context: aContext
-	context <- aContext
+	context := aContext
 !
 METHOD Process
 context
@@ -599,7 +599,7 @@ context
 !
 METHOD Process
 execute | r |
-	r <- self doExecute: 0.
+	r := self doExecute: 0.
 	(r = 3) ifTrue: [
 		" Note: state field is filled in with arguments on error "
 		(state at: 1) print. ' (class ' print.
@@ -613,24 +613,24 @@ execute | r |
 COMMENT -----------Context--------------
 METHOD Context
 setup: aMethod withArguments: a
-	method <- aMethod.
-	arguments <- a.
-	bytePointer <- 0.
-	stack <- Array new: method stackSize.
-	stackTop <- 0.
-	temporaries <- Array new: method temporarySize.
+	method := aMethod.
+	arguments := a.
+	bytePointer := 0.
+	stack := Array new: method stackSize.
+	stackTop := 0.
+	temporaries := Array new: method temporarySize.
 !
 METHOD Context
 perform: aMethod withArguments: a | proc |
 	self setup: aMethod withArguments: a.
-	proc <- Process new.
+	proc := Process new.
 	proc context: self.
 	^ proc execute
 !
 METHOD Context
 backtrace | narg |
 		" backtrace context calls "
-	narg <- 0.
+	narg := 0.
 	method file print.
 	':' print.
 	method line print.
@@ -640,7 +640,7 @@ backtrace | narg |
 	arguments do: [:a |
 		(narg > 0) ifTrue: [ ', ' print ].
 		a class print.
-		narg <- narg+1
+		narg := narg+1
 	].
 	')' printNl.
 	previousContext notNil
@@ -684,7 +684,7 @@ whileFalse: aBlock
 METHOD Block
 backtrace | narg |
 		" backtrace context calls "
-	narg <- 0.
+	narg := 0.
 	method file print.
 	':' print.
 	line print.
@@ -695,7 +695,7 @@ backtrace | narg |
 	arguments do: [:a |
 		(narg > 0) ifTrue: [ ', ' print ].
 		a class print.
-		narg <- narg+1
+		narg := narg+1
 	].
 	')' printNl.
 	previousContext notNil
@@ -767,7 +767,7 @@ METHOD MetaMethod
 name: n byteCodes: b literals: l stackSize: s temporarySize: ts class: c
 fileName: fileName lineNum: lineNum text: t
 	| newMethod |
-	newMethod <- self new.
+	newMethod := self new.
 	super in: newMethod at: 1 put: n.
 	super in: newMethod at: 2 put: b.
 	super in: newMethod at: 3 put: l.
@@ -824,7 +824,7 @@ COMMENT -----------Chars--------------
 METHOD MetaChar
 initialize
 	chars isNil ifTrue: [
-		chars <- Array new: 257.
+		chars := Array new: 257.
 		1 to: 257 do: [:idx|
 			chars at: idx put: (Char basicNew: idx-1)
 		]
@@ -870,7 +870,7 @@ doInput
 METHOD MetaChar
 input	| c |
 	" read a single char from input stream "
-	c <- self doInput.
+	c := self doInput.
 	(c notNil)
 		ifTrue: [ ^self new: c ]
 		ifFalse: [ ^nil ]
@@ -952,8 +952,8 @@ noElement
 !
 METHOD Collection
 size	| tally |
-	tally <- 0.
-	self do: [:i | tally <- tally + 1].
+	tally := 0.
+	self do: [:i | tally := tally + 1].
 	^ tally
 !
 METHOD Collection
@@ -977,27 +977,27 @@ includes: value
 !
 METHOD Collection
 asArray		| newArray index |
-	newArray <- Array new: self size.
-	index <- 1.
+	newArray := Array new: self size.
+	index := 1.
 	self do: [ :element | newArray at: index put: element.
-		index <- index + 1 ].
+		index := index + 1 ].
 	^ newArray
 !
 METHOD Collection
 from: argLow to: argHigh | ret idx size base low high |
-	low <- argLow max: 1.
-	high <- argHigh min: self size.
-	size <- (high - low) + 1.
+	low := argLow max: 1.
+	high := argHigh min: self size.
+	size := (high - low) + 1.
 	(size < 1) ifTrue: [ ^ Array new: 0 ].
-	ret <- Array new: size.
-	base <- idx <- 1.
+	ret := Array new: size.
+	base := idx := 1.
 	self do: [:elem|
 		((idx >= low) and: [idx <= high]) ifTrue: [
 			ret at: base put: elem.
-			base <- base + 1.
+			base := base + 1.
 			(base > size) ifTrue: [ ^ ret ]
 		].
-		idx <- idx + 1.
+		idx := idx + 1.
 	].
 	^ ret
 !
@@ -1007,10 +1007,10 @@ from: argLow
 !
 METHOD Collection
 asString	| newString index |
-	newString <- String new: self size.
-	index <- 1.
+	newString := String new: self size.
+	index := 1.
 	self do: [ :element | newString at: index put: element.
-		index <- index + 1 ].
+		index := index + 1 ].
 	^ newString
 !
 METHOD Collection
@@ -1019,13 +1019,13 @@ asList
 !
 METHOD Collection
 collect: transformBlock	| newList |
-	newList <- List new.
+	newList := List new.
 	self do: [:element | newList addLast: (transformBlock value: element)].
 	^ newList
 !
 METHOD Collection
 select: testBlock	| newList |
-	newList <- List new.
+	newList := List new.
 	self do: [:x | (testBlock value: x) ifTrue: [newList addLast: x]].
 	^ newList
 !
@@ -1046,22 +1046,22 @@ reject: testBlock
 !
 METHOD Collection
 printString | count res |
-	res <- super printString.
+	res := super printString.
 	(self respondsTo: #do:) ifFalse: [ ^ res ].
-	count <- 0.
-	res <- res + ' ('.
+	count := 0.
+	res := res + ' ('.
 	self basicDo: [:elem| 
-		(count = 0) ifFalse: [ res <- res + ' ' ].
-		res <- res + elem printString.
-		count <- count + 1.
+		(count = 0) ifFalse: [ res := res + ' ' ].
+		res := res + elem printString.
+		count := count + 1.
 		(count >= 20) ifTrue: [ ^ res + ' ...)' ]
 	].
 	^ res + ')'
 !
 METHOD Collection
 occurencesOf: obj | count |
-	count <- 0.
-	self do: [:o| (o = obj) ifTrue: [ count <- count + 1]].
+	count := 0.
+	self do: [:o| (o = obj) ifTrue: [ count := count + 1]].
 	^ count
 !
 METHOD Collection
@@ -1088,20 +1088,20 @@ new: sz
 !
 METHOD MetaArray
 with: elemA | ret |
-	ret <- self new: 1.
+	ret := self new: 1.
 	ret at: 1 put: elemA.
 	^ ret
 !
 METHOD MetaArray
 with: elemA with: elemB | ret |
-	ret <- self new: 2.
+	ret := self new: 2.
 	ret at: 1 put: elemA.
 	ret at: 2 put: elemB.
 	^ ret
 !
 METHOD MetaArray
 with: elemA with: elemB with: elemC | ret |
-	ret <- self new: 3.
+	ret := self new: 3.
 	ret at: 1 put: elemA.
 	ret at: 2 put: elemB.
 	ret at: 3 put: elemC.
@@ -1144,9 +1144,9 @@ indexOfVal: aValue
 METHOD Array
 highestIndexOf: aValue
   | i |
-  i <- nil.
+  i := nil.
   1 to: self size do: [ :idx |
-    ((self at: idx) = aValue) ifTrue: [ i <- idx ]
+    ((self at: idx) = aValue) ifTrue: [ i := idx ]
   ]
   ^i
 !
@@ -1156,8 +1156,8 @@ copy
 !
 METHOD Array
 with: newItem	| newArray size |
-	size <- self size.
-	newArray <- self class new: size + 1.
+	size := self size.
+	newArray := self class new: size + 1.
 	newArray replaceFrom: 1 to: size with: self.
 	newArray at: size + 1 put: newItem
 	^ newArray
@@ -1165,9 +1165,9 @@ with: newItem	| newArray size |
 METHOD Array
 + aValue	| size1 size2 newValue |
 	" catenate two strings together "
-	size1 <- self size.
-	size2 <- aValue size.
-	newValue <- self class new: (size1 + size2).
+	size1 := self size.
+	size2 := aValue size.
+	newValue := self class new: (size1 + size2).
 	newValue replaceFrom: 1 to: size1 with: self.
 	newValue replaceFrom: size1+1 to: size1+size2 with: aValue.
 	^ newValue
@@ -1189,7 +1189,7 @@ do: aBlock
 !
 METHOD Array
 < arg		| selfsize argsize |
-	selfsize <- self size. argsize <- arg size.
+	selfsize := self size. argsize := arg size.
 	1 to: (selfsize min: argsize)
 		do: [:i | (self at: i) ~= (arg at: i)
 			ifTrue: [ ^ (self at: i) < (arg at: i) ]].
@@ -1209,8 +1209,8 @@ includesKey: index
 !
 METHOD Array
 insert: value at: position | newArray newSize |
-	newSize <- self size + 1.
-	newArray <- self class new: newSize.
+	newSize := self size + 1.
+	newArray := self class new: newSize.
 	newArray replaceFrom: 1 to: position-1 with: self.
 	newArray at: position put: value.
 	newArray replaceFrom: position+1 to: newSize with:
@@ -1219,8 +1219,8 @@ insert: value at: position | newArray newSize |
 !
 METHOD Array
 removeIndex: position  | newArray newSize |
-	newSize <- self size - 1.
-	newArray <- self class new: newSize.
+	newSize := self size - 1.
+	newArray := self class new: newSize.
 	newArray replaceFrom: 1 to: position-1 with: self.
 	newArray replaceFrom: position to: newSize with: self
 		startingAt: position+1.
@@ -1232,18 +1232,18 @@ first
 !
 METHOD Array
 from: low to: high | start stop size obj |
-	start <- low max: 0.
-	stop <- high min: self size.
-	size <- (stop + 1 - start) max: 0.
-	obj <- (self species) new: size.
+	start := low max: 0.
+	stop := high min: self size.
+	size := (stop + 1 - start) max: 0.
+	obj := (self species) new: size.
 	1 to: size do: [ :i |
 		obj at: i put: (self at: start).
-		start <- start + 1 ].
+		start := start + 1 ].
 	^ obj
 !
 METHOD Array
 hash | sz |
-	sz <- self size.
+	sz := self size.
 	(sz < 2) ifTrue: [
 		(sz = 1) ifTrue: [ ^ (self at: 1) hash + sz ].
 		^ 0
@@ -1262,7 +1262,7 @@ replaceFrom: start to: stop with: replacement
 METHOD Array
 replaceFrom: start to: stop with: replacement startingAt: repStart | base |
 	<38 start stop replacement repStart self>.
-	base <- repStart-1.
+	base := repStart-1.
 	0 to: (stop - start) do: [:idx|
 		self at: (idx + start) put:
 			(replacement at: (idx + repStart))
@@ -1275,18 +1275,18 @@ add: value
 !
 METHOD OrderedArray
 includes: value | position |
-	position <- self location: value.
+	position := self location: value.
 	^ (position <= self size) and: [ value = (self at: position)]
 !
 METHOD OrderedArray
 location: value | low high mid |
-	low <- 1.
-	high <- self size + 1.
+	low := 1.
+	high := self size + 1.
 	[ low < high ] whileTrue:
-		[ mid <- (low + high) quo: 2.
+		[ mid := (low + high) quo: 2.
 		(self at: mid) < value
-			ifTrue: [ low <- mid + 1 ]
-			ifFalse: [ high <- mid ] ].
+			ifTrue: [ low := mid + 1 ]
+			ifFalse: [ high := mid ] ].
 	^ low
 !
 COMMENT ---------- ByteArrays ------------
@@ -1318,8 +1318,8 @@ at: index put: aValue
 !
 METHOD ByteArray
 asString | str sz |
-	sz <- self size.
-	str <- String new: sz.
+	sz := self size.
+	str := String new: sz.
 	1 to: sz do: [:i| str at: i put: ((self at: i) asChar)].
 	^ str
 !
@@ -1331,10 +1331,10 @@ new: size
 METHOD MetaString
 input	| value c nl |
 	" read a line from input "
-	value <- ''. nl <- Char newline.
-	[ c <- Char input.
+	value := ''. nl := Char newline.
+	[ c := Char input.
 	  c isNil ifTrue: [ ^ nil ]. c ~= nl ] whileTrue:
-		[ value <- value + c asString ].
+		[ value := value + c asString ].
 	^ value
 !
 METHOD MetaString
@@ -1352,15 +1352,15 @@ edit
 METHOD String
 break: separators  | words word |
 	" break string into words, using separators "
-	word <- ''.
-	words <- List new.
+	word := ''.
+	words := List new.
 	self do: [:c |
 		(separators includes: c)
 			ifTrue: [
 				(word size > 0) " found a word "
 					ifTrue: [ words addLast: word.
-							word <- '' ] ]
-			ifFalse: [ word <- word + c asString ] ].
+							word := '' ] ]
+			ifFalse: [ word := word + c asString ] ].
 		" maybe a last word "
 	(word size > 0) ifTrue: [ words addLast: word ].
 	^ words
@@ -1388,14 +1388,14 @@ asString
 METHOD String
 printWidth: width | ret |
 	(self size >= width absolute) ifTrue: [ ^ self ].
-	ret <- self.
+	ret := self.
 	(width negative) ifTrue: [
 			(self size + 1) to: (width negated) do:
-				[:ignore| ret <- ' ' + ret].
+				[:ignore| ret := ' ' + ret].
 		]
 		ifFalse: [
 			(self size + 1) to: width do:
-				[:ignore| ret <- ret + ' ' ].
+				[:ignore| ret := ret + ' ' ].
 		].
 	^ret
 !
@@ -1405,7 +1405,7 @@ asSymbol
 !
 METHOD String
 doIt	| meth |
-	meth <- Undefined parseMethod: 'doItCommand ^' + self.
+	meth := Undefined parseMethod: 'doItCommand ^' + self.
 	^ meth notNil
 		ifTrue: [ ^ Context new
 			  perform: meth withArguments: (Array new: 1) ]
@@ -1421,7 +1421,7 @@ at: index
 !
 METHOD String
 at: index ifAbsent: exceptionBlock | c |
-	c <- self basicAt: index.
+	c := self basicAt: index.
 	(c isNil)
 	     ifTrue: [ ^ exceptionBlock value ]
 	     ifFalse: [ ^ Char new: c ]
@@ -1445,16 +1445,16 @@ copy
 METHOD String
 asNumber | val |
 	" parse a base-10 ASCII number, return nil on failure "
-	val <- 0.
+	val := 0.
 	self do: [:c|
 		c isDigit ifFalse: [^nil].
-		val <- (val * 10) + (c value - 48)
+		val := (val * 10) + (c value - 48)
 	].
 	^val
 !
 METHOD String
 hash | sz |
-	sz <- self size.
+	sz := self size.
 	(sz < 2) ifTrue: [
 		(sz = 1) ifTrue: [ ^ (self at: 1) value ].
 		^ 0
@@ -1463,10 +1463,10 @@ hash | sz |
 !
 METHOD String
 lowerCase | ret c |
-	ret <- String new: (self size).
+	ret := String new: (self size).
 	1 to: self size do: [:x|
-		c <- self at: x.
-		c isUpperCase ifTrue: [c <- c lowerCase].
+		c := self at: x.
+		c isUpperCase ifTrue: [c := c lowerCase].
 		ret at: x put: c
 	].
 	^ ret
@@ -1477,8 +1477,8 @@ indexOf: val | c s |
 	(val isKindOf: String) ifFalse: [ ^ super indexOf: val ].
 
 	" Otherwise look for substring match "
-	c <- val at: 1.
-	s <- val size.
+	c := val at: 1.
+	s := val size.
 	1 to: (self size - s + 1) do: [:idx|
 		" Cheap check for initial char equality "
 		((self at: idx) = c) ifTrue: [
@@ -1491,25 +1491,25 @@ indexOf: val | c s |
 COMMENT --------- List -----------
 METHOD MetaList
 with: elemA	| newList |
-	newList <- self new.
+	newList := self new.
 	newList add: elemA.
 	^ newList
 !
 METHOD MetaList
 with: elemA with: elemB	| newList |
-	newList <- self new.
+	newList := self new.
 	newList add: elemB.  newList add: elemA.
 	^ newList
 !
 METHOD MetaList
 with: elemA with: elemB with: elemC	| newList |
-	newList <- self new.
+	newList := self new.
 	newList add: elemC.  newList add: elemB.  newList add: elemA.
 	^ newList
 !
 METHOD List
 add: anElement
-	elements <- Link value: anElement next: elements.
+	elements := Link value: anElement next: elements.
 	^ anElement
 !
 METHOD List
@@ -1537,30 +1537,30 @@ badIndex
 !
 METHOD List
 findLink: index ifAbsent: aBlock | idx link |
-	link <- elements.
-	idx <- index.
+	link := elements.
+	idx := index.
 	link isNil ifTrue: [ ^ aBlock value ].
 	[ link notNil ] whileTrue: [
-		idx <- idx-1.
+		idx := idx-1.
 		(idx = 0) ifTrue: [ ^ link ].
-		link <- link next
+		link := link next
 	].
 	^ aBlock value
 !
 METHOD List
 at: index | link |
-	link <- self findLink: index ifAbsent: [ self badIndex ].
+	link := self findLink: index ifAbsent: [ self badIndex ].
 	^ link value
 !
 METHOD List
 at: index ifAbsent: aBlock | link |
-	link <- self findLink: index ifAbsent: [nil].
+	link := self findLink: index ifAbsent: [nil].
 	link isNil ifTrue: [ ^ aBlock value ].
 	^ link value
 !
 METHOD List
 at: index put: value | link |
-	link <- self findLink: index.
+	link := self findLink: index.
 	link value: value
 !
 METHOD List
@@ -1575,7 +1575,7 @@ METHOD List
 removeFirst
 	elements isNil
 		ifTrue: [ self emptyCollection ]
-		ifFalse: [ elements <- elements next ]
+		ifFalse: [ elements := elements next ]
 !
 METHOD List
 remove: anElement
@@ -1584,7 +1584,7 @@ remove: anElement
 !
 METHOD List
 reverse | newList |
-	newList <- List new.
+	newList := List new.
 	self do: [ :element | newList add: element ].
 	^ newList
 !
@@ -1604,7 +1604,7 @@ reverseDo: aBlock
 !
 METHOD List
 select: testBlock | newList |
-	newList <- List new.
+	newList := List new.
 	self reverseDo: [:element | (testBlock value: element)
 		ifTrue: [ newList add: element ] ].
 	^ newList
@@ -1613,7 +1613,7 @@ COMMENT ---------- Dictionary ------------
 METHOD MetaDictionary
 test
   | obj |
-  obj <- Dictionary new.
+  obj := Dictionary new.
   obj at: #Hello put: 'World!'.
   obj at: #foo put: #bar.
 
@@ -1621,7 +1621,7 @@ test
 !
 METHOD MetaDictionary
 new | newDict |
-	newDict <- super new.
+	newDict := super new.
 	self in: newDict at: 1 put: (OrderedArray new: 0).
 	self in: newDict at: 2 put: (Array new: 0).
 	^ newDict
@@ -1636,16 +1636,16 @@ at: key
 !
 METHOD Dictionary
 at: key put: value | position |
-	position <- keys location: key.
+	position := keys location: key.
 	(position <= keys size and: [ key = (keys at: position)])
 		ifTrue: [ values at: position put: value ]
-		ifFalse: [ keys <- keys insert: key at: position.
-			values <- values insert: value at: position ].
+		ifFalse: [ keys := keys insert: key at: position.
+			values := values insert: value at: position ].
 	^ value
 !
 METHOD Dictionary
 at: key ifAbsent: exceptionBlock | position |
-	position <- keys location: key.
+	position := keys location: key.
 	((position <= keys size) and: [ key = (keys at: position)])
 		ifTrue: [ ^ values at: position ]
 		ifFalse: [ ^ exceptionBlock value ]
@@ -1661,7 +1661,7 @@ keysDo: aBlock
 !
 METHOD Dictionary
 keysAsArray | i ret |
-	ret <- Array new: keys size.
+	ret := Array new: keys size.
 	1 to: keys size do: [:i| ret at: i put: (keys at: i)].
 	^ ret
 !
@@ -1675,10 +1675,10 @@ do: aBlock
 !
 METHOD Dictionary
 removeKey: key ifAbsent: exceptionBlock | position |
-	position <- keys location: key.
+	position := keys location: key.
 	(position <= keys size and: [ key = (keys at: position) ])
-		ifTrue: [ keys <- keys removeIndex: position.
-			values <- values removeIndex: position]
+		ifTrue: [ keys := keys removeIndex: position.
+			values := values removeIndex: position]
 		ifFalse: [ ^ exceptionBlock value ]
 !
 METHOD Dictionary
@@ -1687,12 +1687,12 @@ removeKey: key
 !
 METHOD Dictionary
 printString | count res |
-	res <- self class printString + ' ('.
-	count <- 0.
+	res := self class printString + ' ('.
+	count := 0.
 	self binaryDo: [:k :elem| 
-		(count = 0) ifFalse: [ res <- res + ', ' ].
-		res <- res + (k printString + ' -> ' + elem printString).
-		count <- count + 1.
+		(count = 0) ifFalse: [ res := res + ', ' ].
+		res := res + (k printString + ' -> ' + elem printString).
+		count := count + 1.
 		(count >= 20) ifTrue: [ ^ res + ', ...)' ]
 	].
 	^ res + ')'
@@ -1704,26 +1704,26 @@ add: anAssoc
 COMMENT ---------- Set ------------
 METHOD MetaSet
 new: size | ret |
-	ret <- super new.
+	ret := super new.
 	self in: ret at: 1 put: (Array new: size).
 	self in: ret at: 2 put: size.
 	^ ret
 !
 METHOD MetaSet
 with: objA | ret |
-	ret <- self new.
+	ret := self new.
 	ret add: objA.
 	^ ret
 !
 METHOD MetaSet
 with: objA with: objB | ret |
-	ret <- self new.
+	ret := self new.
 	ret add: objA. ret add: objB.
 	^ ret
 !
 METHOD MetaSet
 with: objA with: objB with: objC | ret |
-	ret <- self new.
+	ret := self new.
 	ret add: objA. ret add: objB. ret add: objC.
 	^ ret
 !
@@ -1733,15 +1733,15 @@ new
 !
 METHOD Set
 size | tally |
-	tally <- 0.
-	members do: [:elem| elem notNil ifTrue: [ tally <- tally + 1 ] ].
+	tally := 0.
+	members do: [:elem| elem notNil ifTrue: [ tally := tally + 1 ] ].
 	^ tally
 !
 METHOD Set
 grow | bigger old oldsize |
 	" Re-create ourselves in place with a new, bigger storage "
-	old <- members.
-	members <- Array new: (old size + growth).
+	old := members.
+	members := Array new: (old size + growth).
 
 	" Re-insert each existing Set member "
 	old do: [:elem| self add: elem]
@@ -1756,19 +1756,19 @@ compare: t and: e
 !
 METHOD Set
 location: elem | pos start t |
-	start <- pos <- (elem hash rem: members size) + 1.
+	start := pos := (elem hash rem: members size) + 1.
 	[ true ] whileTrue: [
 		" Return this position if we match, or have reached
 		  a nil slot. "
-		t <- members at: pos.
+		t := members at: pos.
 		((t isNil) or: [self compare: t and: elem]) ifTrue: [
 			^ pos
 		].
 
 		" Advance to next slot, circularly "
-		pos <- pos + 1.
+		pos := pos + 1.
 		(pos > members size) ifTrue: [
-			pos <- 1
+			pos := 1
 		].
 
 		" Return nil if we have scanned the whole Set "
@@ -1778,7 +1778,7 @@ location: elem | pos start t |
 METHOD Set
 add: elem | pos |
 	" Find the appropriate slot... if none, need to grow the Set "
-	pos <- self location: elem.
+	pos := self location: elem.
 	pos isNil ifTrue: [
 		self grow.
 		^ self add: elem
@@ -1792,16 +1792,16 @@ add: elem | pos |
 !
 METHOD Set
 rehash: start | pos elem |
-	pos <- start.
+	pos := start.
 	[ true ] whileTrue: [
 		" Advance to next slot, ceasing when we reach our start "
-		pos <- pos + 1.
-		(pos > members size) ifTrue: [ pos <- 1 ].
+		pos := pos + 1.
+		(pos > members size) ifTrue: [ pos := 1 ].
 		(pos = start) ifTrue: [ ^ self ]
 
 		" If we reach a nil slot, there are no further rehash
 		  worries. "
-		elem <- members at: pos.
+		elem := members at: pos.
 		elem isNil ifTrue: [ ^ self ].
 
 		" Nil out the slot, and then re-insert the element "
@@ -1812,7 +1812,7 @@ rehash: start | pos elem |
 METHOD Set
 remove: elem ifAbsent: aBlock | pos |
 	" If not found, return error "
-	pos <- self location: elem.
+	pos := self location: elem.
 	((pos isNil) or: [(members at: pos) isNil]) ifTrue: [
 		aBlock value
 	].
@@ -1835,7 +1835,7 @@ do: aBlock
 !
 METHOD Set
 at: value ifAbsent: aBlock | pos |
-	pos <- self location: value.
+	pos := self location: value.
 	((pos isNil) or: [ (members at: pos) isNil ]) ifTrue: [
 		^ aBlock value
 	].
@@ -1876,24 +1876,24 @@ asDigit
 !
 METHOD Number
 printWidth: width base: base | res n dig wasNeg wide |
-	res <- ''.
+	res := ''.
 	(self negative) ifTrue: [
-		wasNeg <- true.
-		wide <- width-1.
-		n <- self negated
+		wasNeg := true.
+		wide := width-1.
+		n := self negated
 	] ifFalse: [
-		wasNeg <- false.
-		wide <- width.
-		n <- self
+		wasNeg := false.
+		wide := width.
+		n := self
 	].
 	[true] whileTrue: [
-		res <- ((n rem: base) asDigit) + res.
-		n <- n quo: base.
+		res := ((n rem: base) asDigit) + res.
+		n := n quo: base.
 		(n = 0) ifTrue: [
 			((res size)+1) to: wide do: [:ignore|
-				res <- '0' + res
+				res := '0' + res
 			].
-			wasNeg ifTrue: [ res <- '-' + res ].
+			wasNeg ifTrue: [ res := '-' + res ].
 			^res
 		]
 	]
@@ -1917,15 +1917,15 @@ to: limit by: step
 METHOD Number
 to: limit do: aBlock  | i |
 		" optimize arithmetic loops "
-	i <- self.
-	[ i <= limit ] whileTrue: [ aBlock value: i. i <- i + 1 ]
+	i := self.
+	[ i <= limit ] whileTrue: [ aBlock value: i. i := i + 1 ]
 !
 METHOD Number
 to: limit by: step do: aBlock  | i |
-	i <- self.
+	i := self.
   i <= limit
-    ifTrue:  [ [ i <= limit ] whileTrue: [ aBlock value: i. i <- i + step ] ]
-    ifFalse: [ [ i >= limit ] whileTrue: [ aBlock value: i. i <- i + step ] ]
+    ifTrue:  [ [ i <= limit ] whileTrue: [ aBlock value: i. i := i + step ] ]
+    ifFalse: [ [ i >= limit ] whileTrue: [ aBlock value: i. i := i + step ] ]
 !
 METHOD Number
 overflow
@@ -1958,10 +1958,10 @@ METHOD MetaSmallInt
 atRandom
 	" Set up seed one time.  TBD: init from something external;
 	  getpid() or time() "
-	seed isNil ifTrue: [ seed <- 17 ].
+	seed isNil ifTrue: [ seed := 17 ].
 
 	" Rotate the random number generator. "
-	seed <- ((seed * 1103515245 + 12345) truncSmallInt)
+	seed := ((seed * 1103515245 + 12345) truncSmallInt)
 		bitAnd: 268435455.
 	^ seed
 !
@@ -2047,10 +2047,10 @@ bitShift: arg
 !
 COMMENT ---------- Integer ------------
 METHOD MetaInteger
-new: low
-	<32 low>
-	low <- low asSmallInt.
-	<32 low>
+new: low | xlow |
+	<32 low>.
+	xlow := low asSmallInt.
+	<32 xlow>.
 	self primitiveFailed
 !
 METHOD Integer
@@ -2143,7 +2143,7 @@ first
 METHOD Node
 removeFirst
 	left notNil
-		ifTrue: [ left <- left removeFirst. ^ self ]
+		ifTrue: [ left := left removeFirst. ^ self ]
 		ifFalse: [ ^ right ]
 !
 METHOD Node
@@ -2151,25 +2151,25 @@ add: anElement
 	value < anElement
 		ifTrue: [ right notNil
 			ifTrue: [ right add: anElement ]
-			ifFalse: [ right <- Node new: anElement ] ]
+			ifFalse: [ right := Node new: anElement ] ]
 		ifFalse: [ left notNil
 			ifTrue: [ left add: anElement ]
-			ifFalse: [ left <- Node new: anElement ] ]
+			ifFalse: [ left := Node new: anElement ] ]
 !
 METHOD Node
 remove: key ifAbsent: exceptionBlock
 	value = key
 		ifTrue: [ right notNil
-			ifTrue: [ value <- right first.
-			right <- right removeFirst.
+			ifTrue: [ value := right first.
+			right := right removeFirst.
 			^ self ]
 			ifFalse: [ ^ left ] ].
 	value < key
 		ifTrue: [ right notNil
-			ifTrue: [ right <- right remove: key ifAbsent: exceptionBlock ]
+			ifTrue: [ right := right remove: key ifAbsent: exceptionBlock ]
 			ifFalse: [ ^ exceptionBlock value ] ]
 		ifFalse: [ left notNil
-			ifTrue: [ left <- left removeL key ifAbsent: exceptionBlock ]
+			ifTrue: [ left := left removeL key ifAbsent: exceptionBlock ]
 			ifFalse: [ ^ exceptionBlock value ] ]
 !
 METHOD Node
@@ -2190,31 +2190,31 @@ at: key ifAbsent: exceptionBlock
 COMMENT ---------- Intervals ------------
 METHOD MetaInterval
 from: l to: h step: s | newInterval |
-	newInterval <- self in: self new at: 1 put: l.
+	newInterval := self in: self new at: 1 put: l.
 	self in: newInterval at: 2 put: h.
 	self in: newInterval at: 3 put: s.
 	^ newInterval
 !
 METHOD Interval
 do: aBlock	| current |
-	current <- low.
+	current := low.
 	(step < 0)
 		ifTrue: [
 			[ current >= high ] whileTrue:
 				[ aBlock value: current.
-				current <- current + step ] ]
+				current := current + step ] ]
 		ifFalse: [
 			[ current <= high ] whileTrue:
 				[ aBlock value: current.
-				current <- current + step ] ]
+				current := current + step ] ]
 !
 METHOD Interval
 low: l
-	low <- l
+	low := l
 !
 METHOD Interval
 high: h
-	high <- h
+	high := h
 !
 METHOD Interval
 low
@@ -2233,15 +2233,15 @@ includes: val
 !
 METHOD Interval
 printString | s |
-	s <- (self class printString) + ' <' +
+	s := (self class printString) + ' <' +
 		low printString + '..' + high printString.
-	(step ~= 1) ifTrue: [ s <- s + ' by ' + step printString ].
+	(step ~= 1) ifTrue: [ s := s + ' by ' + step printString ].
 	^ s + '>'
 !
 METHOD Interval
 atRandom | ret |
 	" Return a random element from our sequence "
-	ret <- (SmallInt atRandom) rem: ((high - low + 1) quo: step).
+	ret := (SmallInt atRandom) rem: ((high - low + 1) quo: step).
 	^ low + (ret * step)
 !
 COMMENT ---------- Links ------------
@@ -2254,7 +2254,7 @@ value: v
 METHOD MetaLink
 value: v next: n	| new |
 		" return a new link with the given fields "
-	new <- self new.
+	new := self new.
 	self in: new at: 1 put: v.
 	self in: new at: 2 put: n.
 	^ new
@@ -2265,7 +2265,7 @@ value
 !
 METHOD Link
 value: val
-	value <- val
+	value := val
 !
 METHOD Link
 next
@@ -2281,7 +2281,7 @@ remove: anElement ifAbsent: exceptionBlock
 	value = anElement
 		ifTrue: [ ^ next ]
 		ifFalse: [ next notNil
-			ifTrue: [ next <- next remove: anElement
+			ifTrue: [ next := next remove: anElement
 				ifAbsent: exceptionBlock. ^ self ]
 			ifFalse: [ ^ exceptionBlock value ] ]
 !
@@ -2294,7 +2294,7 @@ METHOD Link
 addLast: anElement
 	next notNil
 		ifTrue: [ ^ next addLast: anElement ]
-		ifFalse: [ next <- Link value: anElement ]
+		ifFalse: [ next := Link value: anElement ]
 !
 COMMENT ---------- Association ------------
 METHOD MetaAssociation
@@ -2305,7 +2305,7 @@ key: k
 METHOD MetaAssociation
 key: k value: v | ret |
 		"key is set once, value is resettable"
-	ret <- self new.
+	ret := self new.
 	self in: ret at: 1 put: k.
 	self in: ret at: 2 put: v.
 	^ ret
@@ -2326,7 +2326,7 @@ METHOD Association
 !
 METHOD Association
 value: v
-	value <- v
+	value := v
 !
 METHOD Association
 value
@@ -2348,7 +2348,7 @@ COMMENT ---------- Tree ------------
 METHOD Tree
 add: anElement
 	root isNil
-		ifTrue: [ root <- Node new: anElement ]
+		ifTrue: [ root := Node new: anElement ]
 		ifFalse: [ root add: anElement ].
 	^anElement
 !
@@ -2368,7 +2368,7 @@ copy
 !
 METHOD Tree
 collect: transformBlock | newTree |
-	newTree <- Tree new.
+	newTree := Tree new.
 	self do: [:element| newTree add: (transformBlock value: element)]
 	^newTree
 !
@@ -2378,7 +2378,7 @@ do: aBlock
 !
 METHOD Tree
 select: testBlock | newTree |
-	newTree <- Tree new.
+	newTree := Tree new.
 	self do: [:element|
 		(testBlock value: element)
 			ifTrue: [newTree add: element]
@@ -2392,13 +2392,13 @@ reverseDo: aBlock
 METHOD Tree
 removeFirst
 	root isNIl ifTrue: [ self emptyCollection ].
-	root <- root removeFirst
+	root := root removeFirst
 !
 METHOD Tree
 remove: key ifAbsent: exceptionBlock
 	root isNil
 		ifTrue: [ exceptionBlock value ]
-		ifFalse: [ root <- root remove: key ifAbsent: exceptionBlock ]
+		ifFalse: [ root := root remove: key ifAbsent: exceptionBlock ]
 !
 METHOD Tree
 first
@@ -2414,7 +2414,7 @@ COMMENT --------------file methods-----------------
 METHOD MetaFile
 test
   | file |
-  file <- File openWrite: 'test.txt'.
+  file := File openWrite: 'test.txt'.
   file opened
     ifTrue: [ 'opened!' printNl ]
     ifFalse: [ 'not opened!' printNl. ^nil ].
@@ -2448,7 +2448,7 @@ openUpdate: nm
 !
 METHOD MetaFile
 fileIn: nm | file |
-	file <- self openRead: nm.
+	file := self openRead: nm.
 	file opened ifFalse: [ ^ self error: 'cannot open file ' + nm ].
 	file fileIn.
 	file close.
@@ -2457,7 +2457,7 @@ fileIn: nm | file |
 METHOD MetaFile
 image: nm | file |
 		" open a file, write the image, then close "
-	file <- self openWrite: nm.
+	file := self openWrite: nm.
 	file opened ifFalse: [ ^ self error: 'cannot open file ' + nm ].
 	file writeImage.
 	file close
@@ -2465,8 +2465,8 @@ image: nm | file |
 METHOD File
 withName: nm withFileID: fid
 	fileID isNil ifFalse: [ ^ self error: 'already opened' ].
-	fileName <- nm.
-	fileID <- fid.
+	fileName := nm.
+	fileID := fid.
 	^ self
 !
 METHOD File
@@ -2482,7 +2482,7 @@ close
 		" close file, return file descriptor "
 	fileID notNil ifTrue: [
 		self close: fileID.
-		fileID <- nil
+		fileID := nil
 	]
 !
 METHOD File
@@ -2510,7 +2510,7 @@ doRead
 METHOD File
 readChar	| c |
 		" read a single character from a file "
-	c <- self doRead.
+	c := self doRead.
 	c notNil ifTrue: [ ^ Char new: c ].
 	^ c
 !
@@ -2518,13 +2518,13 @@ METHOD File
 readLine	| value  c nl |
 	" read a line from input "
 	fileID isNil ifTrue: [ self error: 'cannot read from unopened file' ].
-	value <- ''.
-	nl <- Char newline.
-	[ c <- self doRead.
+	value := ''.
+	nl := Char newline.
+	[ c := self doRead.
 	  c isNil ifTrue: [ ^ nil ].
-	  c <- Char new: c.
+	  c := Char new: c.
 	  c ~= nl ] whileTrue:
-		[ value <- value + c asString ].
+		[ value := value + c asString ].
 	^ value
 !
 METHOD File
@@ -2548,10 +2548,10 @@ fileInDispatch: cmd atLine: line | c rline |
 
 	" Comment enclosed in quotes... find matching quote "
 	(cmd = $") ifTrue: [
-		rline <- line.
-		[ c <- self readChar. c ~= $" ] whileTrue: [
+		rline := line.
+		[ c := self readChar. c ~= $" ] whileTrue: [
 			" Consume chars until closing quote "
-			(c = Char newline) ifTrue: [rline <- line + 1].
+			(c = Char newline) ifTrue: [rline := line + 1].
 			nil
 		].
 		^ rline
@@ -2568,24 +2568,24 @@ fileInDispatch: cmd atLine: line | c rline |
 !
 METHOD File
 fileIn		| line cmd |
-	line <- 1.
-	[ cmd <- self readChar. cmd notNil ] whileTrue: [
-		line <- (self fileInDispatch: cmd atLine: line)
+	line := 1.
+	[ cmd := self readChar. cmd notNil ] whileTrue: [
+		line := (self fileInDispatch: cmd atLine: line)
 	]
 !
 METHOD File
 methodCommand: classCmd atLine: inLineNum | name aClass text line startLineNum lineNum |
-	name <- self readLine asSymbol.
-	aClass <- globals at: name ifAbsent: [ ^ self error:
+	name := self readLine asSymbol.
+	aClass := globals at: name ifAbsent: [ ^ self error:
 		'unknown class name in file-in: ' + name printString ].
-	text <- ''.
-	startLineNum <- inLineNum + 1.
-	lineNum <- startLineNum.
-	[ line <- self readLine.
-	  lineNum <- lineNum + 1.
+	text := ''.
+	startLineNum := inLineNum + 1.
+	lineNum := startLineNum.
+	[ line := self readLine.
+	  lineNum := lineNum + 1.
 	  line isNil ifTrue: [ ^ self error:
 		'unexpected end of input during fileIn' ].
-	  line ~= '!'] whileTrue: [ text <- text + line + String newline ].
+	  line ~= '!'] whileTrue: [ text := text + line + String newline ].
 	classCmd
 		ifTrue: [ aClass addMethod: text fromFile: fileName atLine: startLineNum ]
 		ifFalse: [ aClass class addMethod: text fromFile: fileName atLine: startLineNum ].
@@ -2613,14 +2613,14 @@ at: idx put: buf
 METHOD File
 at: idx get: buf | size |
 	self at: idx.
-	size <- buf size.
+	size := buf size.
 	<106 fileID buf size>
 !
 METHOD File
 at: idx size: count | buf res |
-	buf <- ByteArray new: count.
-	res <- self at: idx get: buf.
-	(res < count) ifTrue: [ buf <- buf from: 1 to: res ].
+	buf := ByteArray new: count.
+	res := self at: idx get: buf.
+	(res < count) ifTrue: [ buf := buf from: 1 to: res ].
 	^ buf
 !
 METHOD File
@@ -2634,15 +2634,15 @@ name
 COMMENT --------------parser methods-----------------
 METHOD Parser
 fileName: fnString lineNum: aNumber text: aString instanceVars: anArray
-	fileName <- fnString.
-	lineNum <- aNumber.
-	text <- aString.
-	index <- 1.
-	argNames <- Array new: 1.
+	fileName := fnString.
+	lineNum := aNumber.
+	text := aString.
+	index := 1.
+	argNames := Array new: 1.
 	argNames at: 1 put: #self.
-	instNames <- anArray.
-	tempNames <- Array new: 0.
-	maxTemps <- 0
+	instNames := anArray.
+	tempNames := Array new: 0.
+	maxTemps := 0
 !
 METHOD Parser
 text: aString instanceVars: anArray
@@ -2651,11 +2651,11 @@ text: aString instanceVars: anArray
 METHOD Parser
 parse: c with: encoderClass	| encoder meth name startLineNum |
 	" note -- must call text:instanceVars: first "
-	startLineNum <- lineNum.
-	errBlock <- [ ^ nil ].
+	startLineNum := lineNum.
+	errBlock := [ ^ nil ].
 	self nextLex.
-	encoder <- encoderClass new.
-	name <- self readMethodName.
+	encoder := encoderClass new.
+	name := self readMethodName.
 	(c ~= Undefined and: [System debugging]) ifTrue: [
 		'Compiling ' print. c print. ':' print.
 		name print. '... ' print
@@ -2663,7 +2663,7 @@ parse: c with: encoderClass	| encoder meth name startLineNum |
 	encoder name: name.
 	self readMethodVariables isNil ifFalse: [self nextLex].
 	self readBody compile: encoder block: false.
-	meth <- encoder method: maxTemps class: c
+	meth := encoder method: maxTemps class: c
 		fileName: fileName lineNum: startLineNum text: text.
 	meth args: argNames inst: instNames temp: tempNames.
 	^ meth
@@ -2689,62 +2689,62 @@ currentChar
 METHOD Parser
 nextChar
   | c |
-  c <- self currentChar.
-	(c = Char newline) ifTrue: [ lineNum <- lineNum + 1 ].
-	index <- index + 1.
+  c := self currentChar.
+	(c = Char newline) ifTrue: [ lineNum := lineNum + 1 ].
+	index := index + 1.
   (c = Char cr) ifTrue: [ ^self nextChar ]
 	^self currentChar
 !
 METHOD Parser
 nextLex	
 	self skipBlanks.
-	tokenType <- self currentChar.
+	tokenType := self currentChar.
 	tokenType isEOF   " end of input "
-		ifTrue: [ tokenType <- $  . token <- nil. ^ nil ].
+		ifTrue: [ tokenType := $  . token := nil. ^ nil ].
 	tokenType isDigit ifTrue: [ ^ self lexInteger ].
 	tokenType isAlphabetic ifTrue: [ ^ self lexAlnum ].
 	^ self lexBinary
 !
 METHOD Parser
 skipBlanks  | cc |
-	cc <- self currentChar.
-	[ cc isBlank ] whileTrue: [ cc <- self nextChar ].
+	cc := self currentChar.
+	[ cc isBlank ] whileTrue: [ cc := self nextChar ].
 	( cc = $" ) ifTrue: [ self skipComment ]
 !
 METHOD Parser
 skipComment  | cc |
-	[ cc <- self nextChar.
+	[ cc := self nextChar.
 	  cc isEOF ifTrue: [ ^ self error: 'unterminated comment'].
 	  cc ~= $" ] whileTrue: [ nil ].
 	self nextChar. self skipBlanks
 !
 METHOD Parser
 lexInteger	| start |
-	start <- index.
+	start := index.
 	[ self nextChar isDigit ]
 		whileTrue: [ nil ].
-	token <- text from: start to: index - 1
+	token := text from: start to: index - 1
 !
 METHOD Parser
 lexAlnum | cc start |
-	start <- index.
-	[ ((cc <- self nextChar) isAlphanumeric) or: [ cc = $: ] ]
+	start := index.
+	[ ((cc := self nextChar) isAlphanumeric) or: [ cc = $: ] ]
 			whileTrue: [ nil ].
 		" add any trailing colons "
-	token <- text from: start to: index - 1
+	token := text from: start to: index - 1
 !
 METHOD Parser
 lexBinary	| c d |
-	c <- self currentChar.
-	token <- c asString.
-	d <- self nextChar.
+	c := self currentChar.
+	token := c asString.
+	d := self nextChar.
 	(self charIsSyntax: c) ifTrue: [ ^ token ].
 	(((d isBlank
 		or: [ d isDigit])
 		or: [ d isAlphabetic ])
 		or: [ self charIsSyntax: d])
 			ifTrue: [ ^ token ].
-	token <- token + d asString.
+	token := token + d asString.
 	self nextChar
 !
 METHOD Parser
@@ -2754,18 +2754,18 @@ charIsSyntax: c
 METHOD Parser
 readMethodName   | name |
 	self tokenIsName	" unary method "
-		ifTrue: [ name <- token. self nextLex. ^ name ].
+		ifTrue: [ name := token. self nextLex. ^ name ].
 	self tokenIsBinary	" binary method "
-		ifTrue: [ name <- token. self nextLex.
+		ifTrue: [ name := token. self nextLex.
 			self tokenIsName
 				ifFalse: [ self error: 'missing argument'].
 				self addArgName: token asSymbol.
 				self nextLex. ^ name ].
 	self tokenIsKeyword
 		ifFalse: [ self error: 'invalid method header'].
-	name <- ''.
+	name := ''.
 	[ self tokenIsKeyword ]
-		whileTrue: [ name <- name + token. self nextLex.
+		whileTrue: [ name := name + token. self nextLex.
 			self tokenIsName
 				ifFalse: [ self error: 'missing argument'].
 				self addArgName: token asSymbol.
@@ -2778,7 +2778,7 @@ addArgName: name
 		or: [ argNames includes: name ])
 		ifTrue: [ self error: 'doubly defined argument name: ' +
 			name asString].
-	argNames <- argNames with: name
+	argNames := argNames with: name
 !
 METHOD Parser
 tokenIsName
@@ -2814,17 +2814,17 @@ addTempName: name
 		or: [ instNames includes: name ] )
 		or: [ tempNames includes: name ] )
 		ifTrue: [ self error: 'doubly defined name '].
-	tempNames <- tempNames with: name.
-	maxTemps <- maxTemps max: tempNames size
+	tempNames := tempNames with: name.
+	maxTemps := maxTemps max: tempNames size
 !
 METHOD Parser
 readBody | lnum |
-	lnum <- lineNum.
+	lnum := lineNum.
 	^ (BodyNode at: lnum) statements: self readStatementList
 !
 METHOD Parser
 readStatementList   | list |
-	list <- List new.
+	list := List new.
 	[ list add: self readStatement.
 	  tokenType notNil and: [ tokenType = $. ] ]
 		whileTrue: [ self nextLex.
@@ -2835,7 +2835,7 @@ readStatementList   | list |
 METHOD Parser
 readStatement | lnum |
 	tokenType = $^
-		ifTrue: [ lnum <- lineNum. self nextLex.
+		ifTrue: [ lnum := lineNum. self nextLex.
 			^ (ReturnNode at: lnum)
 				expression: self readExpression ].
 	^ self readExpression
@@ -2843,11 +2843,11 @@ readStatement | lnum |
 METHOD Parser
 readExpression   | node lnum |
 	self tokenIsName ifFalse: [ ^ self readCascade: self readTerm ].
-	node <- self nameNode: token asSymbol. self nextLex.
+	node := self nameNode: token asSymbol. self nextLex.
 	self tokenIsArrow
 		ifTrue: [ node assignable
 				ifFalse: [ self error: 'illegal assignment'].
-			lnum <- lineNum.
+			lnum := lineNum.
 			self nextLex.
 			^ (AssignNode at: lnum) target:
 				node expression: self readExpression ].
@@ -2856,23 +2856,23 @@ readExpression   | node lnum |
 METHOD Parser
 tokenIsArrow
 	(token isKindOf: String) ifFalse: [ ^ false ].
-	^ token = '<-'
+	^ (token = ':=' or: [token = '<-']) or: [token = '_']
 !
 METHOD Parser
 readTerm   | node lnum |
 	token isNil
 		ifTrue: [ self error: 'unexpected end of input' ].
 	tokenType = $(
-		ifTrue: [ self nextLex. node <- self readExpression.
+		ifTrue: [ self nextLex. node := self readExpression.
 			tokenType = $)
 				ifFalse: [ self error: 'unbalanced parenthesis' ].
 			self nextLex. ^ node ].
 	tokenType = $[ ifTrue: [ ^ self readBlock ].
 	tokenType = $< ifTrue: [ ^ self readPrimitive ].
 	self tokenIsName
-		ifTrue: [ node <- self nameNode: token asSymbol.
+		ifTrue: [ node := self nameNode: token asSymbol.
 			self nextLex. ^ node ].
-	lnum <- lineNum.
+	lnum := lineNum.
 	^ (LiteralNode at: lnum) value: self readLiteral
 !
 METHOD Parser
@@ -2898,7 +2898,7 @@ nameNode: name
 METHOD Parser
 readLiteral   | node |
 	tokenType = $$
-		ifTrue: [ node <- self currentChar.
+		ifTrue: [ node := self currentChar.
 			self nextChar. self nextLex. ^ node ].
 	tokenType isDigit
 		ifTrue: [ ^ self readInteger ].
@@ -2912,18 +2912,18 @@ readLiteral   | node |
 !
 METHOD Parser
 readInteger  | value |
-	value <- token asNumber.
+	value := token asNumber.
 	value isNil ifTrue: [ self error: 'integer expected' ].
 	self nextLex.
 	^ value
 !
 METHOD Parser
 readString  | first last cc |
-	first <- index.
-	[ cc <- self currentChar.
+	first := index.
+	[ cc := self currentChar.
 	  cc isNil ifTrue: [ self error: 'unterminated string constant'].
-	  cc ~= $' ] whileTrue: [ index <- index + 1 ].
-	last <- index - 1.
+	  cc ~= $' ] whileTrue: [ index := index + 1 ].
+	last := index - 1.
 	self nextChar = $'
 		ifTrue: [ self nextChar.
 			^ (text from: first to: index - 2) + self readString ].
@@ -2932,36 +2932,36 @@ readString  | first last cc |
 !
 METHOD Parser
 readSymbol   | cc |
-	cc <- self currentChar.
+	cc := self currentChar.
 	(cc isEOF or: [ cc isBlank])
 		ifTrue: [ self error: 'invalid symbol'].
 	cc = $( ifTrue: [ ^ self readArray ].
 	(self charIsSyntax: cc)
 		ifTrue: [ self error: 'invalid symbol'].
 	self nextLex.
-	cc <- Symbol new: token. self nextLex.
+	cc := Symbol new: token. self nextLex.
 	^ cc
 !
 METHOD Parser
 readArray	| value |
-	self nextChar. self nextLex. value <- Array new: 0.
+	self nextChar. self nextLex. value := Array new: 0.
 	[ tokenType ~= $) ]
-		whileTrue: [ value <- value with: self arrayLiteral ].
+		whileTrue: [ value := value with: self arrayLiteral ].
 	self nextLex.
 	^ value
 !
 METHOD Parser
 arrayLiteral	| node |
 	tokenType isAlphabetic
-		ifTrue: [ node <- Symbol new: token. self nextLex. ^ node ].
+		ifTrue: [ node := Symbol new: token. self nextLex. ^ node ].
 	^ self readLiteral
 !
 METHOD Parser
 readPrimitive  | num args lnum |
-	lnum <- lineNum.
+	lnum := lineNum.
 	self nextLex.
-	num <- self readInteger.
-	args <- List new.
+	num := self readInteger.
+	args := List new.
 	[ tokenType ~= $> ]
 		whileTrue: [ args add: self readTerm ].
 	self nextLex.
@@ -2969,13 +2969,13 @@ readPrimitive  | num args lnum |
 !
 METHOD Parser
 readBlock    | stmts saveTemps lnum |
-	saveTemps <- tempNames.
-	lnum <- lineNum.
+	saveTemps := tempNames.
+	lnum := lineNum.
 	self nextLex.
 	tokenType = $:
 		ifTrue: [ self readBlockTemporaries ].
-	stmts <- self readStatementList.
-	tempNames <- saveTemps.
+	stmts := self readStatementList.
+	tempNames := saveTemps.
 	tokenType = $]
 		ifTrue: [ self nextLex.
 			^ (BlockNode at: lnum) statements: stmts
@@ -2999,10 +2999,10 @@ readBlockTemporaries
 !
 METHOD Parser
 readCascade: base   | node list |
-	node <- self keywordContinuation: base.
+	node := self keywordContinuation: base.
 	tokenType = $;
-		ifTrue: [ node <- (CascadeNode at: lineNum) head: node.
-			list <- List new.
+		ifTrue: [ node := (CascadeNode at: lineNum) head: node.
+			list := List new.
 			[ tokenType = $; ]
 				whileTrue: [ self nextLex.
 					list add:
@@ -3012,20 +3012,20 @@ readCascade: base   | node list |
 !
 METHOD Parser
 keywordContinuation: base  | receiver name args lnum |
-	receiver <- self binaryContinuation: base.
+	receiver := self binaryContinuation: base.
 	(self tokenIsKeyword or: [tokenType = $[])
 		ifFalse: [ ^ receiver ].
-	name <- ''.
-	args <- List new.
-	lnum <- lineNum.
+	name := ''.
+	args := List new.
+	lnum := lineNum.
 	[ self tokenIsKeyword ]
-		whileTrue: [ name <- name + token. self nextLex.
+		whileTrue: [ name := name + token. self nextLex.
 			args add:
 				(self binaryContinuation: self readTerm) ].
 	tokenType = $[
 		ifTrue: [
 			" Extension shorthand "
-			name <- name + 'extend:'.
+			name := name + 'extend:'.
 			args add: ((LiteralNode at: lineNum)
 				value: fileName + String newline +
 					lineNum asString + String newline +
@@ -3037,11 +3037,11 @@ keywordContinuation: base  | receiver name args lnum |
 !
 METHOD Parser
 binaryContinuation: base | receiver name lnum |
-	receiver <- self unaryContinuation: base.
+	receiver := self unaryContinuation: base.
 	[ self tokenIsBinary]
-		whileTrue: [ lnum <- lineNum.
-			name <- token asSymbol. self nextLex.
-			receiver <- (MessageNode at: lnum)
+		whileTrue: [ lnum := lineNum.
+			name := token asSymbol. self nextLex.
+			receiver := (MessageNode at: lnum)
 				receiver: receiver name: name arguments:
 					(List with:
 						(self unaryContinuation: self readTerm)) ].
@@ -3049,10 +3049,10 @@ binaryContinuation: base | receiver name lnum |
 !
 METHOD Parser
 unaryContinuation: base | receiver lnum |
-	receiver <- base.
+	receiver := base.
 	[ self tokenIsName ]
-		whileTrue: [ lnum <- lineNum.
-			receiver <- (MessageNode at: lnum)
+		whileTrue: [ lnum := lineNum.
+			receiver := (MessageNode at: lnum)
 				receiver: receiver name: token asSymbol
 					arguments: (List new).
 				self nextLex ].
@@ -3068,7 +3068,7 @@ new
 !
 METHOD MetaParserNode
 at: l | ret |
-	ret <- super new.
+	ret := super new.
 	self in: ret at: 1 put: l.
 	^ ret
 !
@@ -3090,7 +3090,7 @@ compile: encoder
 !
 METHOD BodyNode
 statements: s
-	statements <- s
+	statements := s
 !
 METHOD BodyNode
 compile: encoder block: inBlock
@@ -3102,7 +3102,7 @@ compile: encoder block: inBlock
 !
 METHOD ReturnNode
 expression: e
-	expression <- e
+	expression := e
 !
 METHOD ReturnNode
 compile: encoder block: inBlock
@@ -3114,8 +3114,8 @@ compile: encoder block: inBlock
 !
 METHOD AssignNode
 target: t expression: e
-	target <- t.
-	expression <- e
+	target := t.
+	expression := e
 !
 METHOD AssignNode
 compile: encoder block: inBlock
@@ -3125,7 +3125,7 @@ compile: encoder block: inBlock
 !
 METHOD LiteralNode
 value: v
-	value <- v
+	value := v
 !
 METHOD LiteralNode
 compile: encoder block: inBlock
@@ -3140,7 +3140,7 @@ compile: encoder block: inBlock
 !
 METHOD ArgumentNode
 position: p
-	position <- p
+	position := p
 !
 METHOD ArgumentNode
 isSuper
@@ -3155,7 +3155,7 @@ compile: encoder block: inBlock
 !
 METHOD TemporaryNode
 position: p
-	position <- p
+	position := p
 !
 METHOD TemporaryNode
 compile: encoder block: inBlock
@@ -3172,7 +3172,7 @@ assign: encoder
 !
 METHOD InstNode
 position: p
-	position <- p
+	position := p
 !
 METHOD InstNode
 compile: encoder block: inBlock
@@ -3189,12 +3189,12 @@ assignable
 !
 METHOD PrimitiveNode
 number: n arguments: a
-	number <- n.
-	arguments <- a.
+	number := n.
+	arguments := a.
 !
 METHOD PrimitiveNode
 compile: encoder block: inBlock | argsize |
-	argsize <- arguments size.
+	argsize := arguments size.
 	super compile: encoder.
 	encoder pushArgs: argsize.
 	arguments reverseDo: [ :a | a compile: encoder block: inBlock ].
@@ -3204,9 +3204,9 @@ compile: encoder block: inBlock | argsize |
 !
 METHOD BlockNode
 statements: s temporaryLocation: t lineNum: l
-	statements <- s.
-	temporaryLocation <- t.
-	lineNum <- l.
+	statements := s.
+	temporaryLocation := t.
+	lineNum := l.
 !
 METHOD BlockNode
 compileInLine: encoder block: inBlock
@@ -3224,18 +3224,18 @@ compile: encoder block: inBlock | patchLocation |
 	super compile: encoder.
 	encoder genHigh: 4 low: (encoder genLiteral: lineNum).
 	encoder genHigh: 12 low: temporaryLocation.
-	patchLocation <- encoder genVal: 0.
+	patchLocation := encoder genVal: 0.
 	self compileInLine: encoder block: true.
 	encoder genHigh: 15 low: 2. " return top of stack "
 	encoder patch: patchLocation
 !
 METHOD CascadeNode
 head: h
-	head <- h
+	head := h
 !
 METHOD CascadeNode
 list: l
-	list <- l
+	list := l
 !
 METHOD CascadeNode
 compile: encoder block: inBlock
@@ -3248,9 +3248,9 @@ compile: encoder block: inBlock
 !
 METHOD MessageNode
 receiver: r name: n arguments: a
-	receiver <- r.
-	name <- n.
-	arguments <- a
+	receiver := r.
+	name := n.
+	arguments := a
 !
 METHOD MessageNode
 compile: encoder block: inBlock
@@ -3319,12 +3319,12 @@ argumentsAreBlock
 !
 METHOD MessageNode
 optimizeWhile: encoder block: inBlock | start save |
-	start <- encoder currentLocation.
+	start := encoder currentLocation.
 	receiver compileInLine: encoder block: inBlock.
 	name = #whileTrue:	" branch if false/true "
 		ifTrue: [ encoder genHigh: 15 low: 8 ]
 		ifFalse: [ encoder genHigh: 15 low: 7 ].
-	save <- encoder genVal: 0.
+	save := encoder genVal: 0.
 	arguments first compileInLine: encoder block: inBlock.
 	encoder genHigh: 15 low: 5. " pop from stack "
 	encoder genHigh: 15 low: 6. " branch "
@@ -3336,10 +3336,10 @@ METHOD MessageNode
 compile: encoder test: t constant: c block: inBlock | save ssave |
 	super compile: encoder.
 	encoder genHigh: 15 low: t.  " branch test "
-	save <- encoder genVal: 0.
+	save := encoder genVal: 0.
 	arguments first compileInLine: encoder block: inBlock.
 	encoder genHigh: 15 low: 6.  " branch "
-	ssave <- encoder genVal: 0.
+	ssave := encoder genVal: 0.
 	encoder patch: save.
 	encoder genHigh: 5 low: c.  " push constant "
 	encoder patch: ssave
@@ -3347,23 +3347,23 @@ compile: encoder test: t constant: c block: inBlock | save ssave |
 METHOD MessageNode
 optimizeIf: encoder block: inBlock | save ssave |
 	encoder genHigh: 15 low: 7.  " branch if true test "
-	save <- encoder genVal: 0.
+	save := encoder genVal: 0.
 	arguments first compileInLine: encoder block: inBlock.
 	arguments removeFirst.
 	encoder genHigh: 15 low: 6.  " branch "
-	ssave <- encoder genVal: 0.
+	ssave := encoder genVal: 0.
 	encoder patch: save.
 	arguments first compileInLine: encoder block: inBlock.
 	encoder patch: ssave
 !
 METHOD Encoder
 name: n
-	name <- n asSymbol.
-	byteCodes <- ByteArray new: 20.
-	index <- 0.
-	literals <- Array new: 0.
-	stackSize <- 0.
-	maxStack <- 1.
+	name := n asSymbol.
+	byteCodes := ByteArray new: 20.
+	index := 0.
+	literals := Array new: 0.
+	stackSize := 0.
+	maxStack := 1.
 !
 METHOD Encoder
 lineNum: l
@@ -3371,18 +3371,18 @@ lineNum: l
 !
 METHOD Encoder
 pushArgs: n
-	stackSize <- stackSize + n.
-	maxStack <- stackSize max: maxStack
+	stackSize := stackSize + n.
+	maxStack := stackSize max: maxStack
 !
 METHOD Encoder
 popArgs: n
-	stackSize <- stackSize - n.
+	stackSize := stackSize - n.
 !
 METHOD Encoder
 genLiteral: aValue | idx |
-	idx <- literals indexOf: aValue.
+	idx := literals indexOf: aValue.
 	idx notNil ifTrue: [ ^ idx - 1 ].
-	literals <- literals with: aValue.
+	literals := literals with: aValue.
 	^ literals size - 1
 !
 METHOD Encoder
@@ -3393,7 +3393,7 @@ genHigh: high low: low
 !
 METHOD Encoder
 genCode: byte
-	index <- index + 1.
+	index := index + 1.
 	(index >= byteCodes size)
 		ifTrue: [ self expandByteCodes].
 	byteCodes at: index put: byte.
@@ -3407,10 +3407,10 @@ genVal: byte
 !
 METHOD Encoder
 expandByteCodes	| newarray size |
-	size <- byteCodes size.
-	newarray <- ByteArray new: size + 8.
+	size := byteCodes size.
+	newarray := ByteArray new: size + 8.
 	1 to: size do: [:i | newarray at: i put: (byteCodes at: i)].
-	byteCodes <- newarray
+	byteCodes := newarray
 !
 METHOD Encoder
 patch: loc
@@ -3425,7 +3425,7 @@ currentLocation
 METHOD Encoder
 backUp
 	" back up one instruction "
-	index <- index - 1
+	index := index - 1
 !
 METHOD Encoder
 method: maxTemps class: c fileName: fileName lineNum: lineNum text: text
@@ -3436,14 +3436,14 @@ method: maxTemps class: c fileName: fileName lineNum: lineNum text: text
 METHOD MetaFFI
 new
   | obj |
-  obj <- super new.
+  obj := super new.
   obj init.
   ^obj
 !
 METHOD MetaFFI
 new: theName
   | obj |
-  obj <- super new.
+  obj := super new.
   obj init.
   obj open: theName.
   ^obj
@@ -3451,7 +3451,7 @@ new: theName
 METHOD MetaFFI
 test
   | obj |
-  obj <- FFI new: 'msvcrt.dll'.
+  obj := FFI new: 'msvcrt.dll'.
   obj add: #printf.
   obj call: #printf arg: ('Hello%s' + String newline) arg: ' World!'.
   obj call: #printf arg: ('The number is: %d' + String newline) arg: 12345.
@@ -3460,14 +3460,14 @@ test
 !
 METHOD FFI
 init
-  functions <- Dictionary new
+  functions := Dictionary new
 !
 METHOD FFI
 name: theName
   | path |
-  path <- Pathname new: theName.
+  path := Pathname new: theName.
   path replaceOrAddSuffix: System suffixForDLL.
-  name <- path path.
+  name := path path.
 !
 METHOD FFI
 name
@@ -3475,7 +3475,7 @@ name
 !
 METHOD FFI
 handle: theHandle
-  handle <- theHandle
+  handle := theHandle
 !
 METHOD FFI
 handle
@@ -3483,7 +3483,7 @@ handle
 !
 METHOD FFI
 functions: theFunctions
-  functions <- theFunctions
+  functions := theFunctions
 !
 METHOD FFI
 functions
@@ -3496,7 +3496,7 @@ resolveFunction: theName
 METHOD FFI
 add: theName
   | func |
-  func <- self resolveFunction: theName.
+  func := self resolveFunction: theName.
   functions at: theName put: func.
 !
 METHOD FFI
@@ -3509,7 +3509,7 @@ openPrim
 !
 METHOD FFI
 open
-  handle <- self openPrim
+  handle := self openPrim
 !
 METHOD FFI
 open: theName
@@ -3523,7 +3523,7 @@ closePrim
 METHOD FFI
 close
   self closePrim.
-  handle <- nil
+  handle := nil
 !
 METHOD FFI
 call: theName
@@ -3532,14 +3532,14 @@ call: theName
 METHOD FFI
 call: theName arg: theArg
   | args |
-  args <- Array new: 1.
+  args := Array new: 1.
   args at: 1 put: theArg.
   ^self call: theName args: args.
 !
 METHOD FFI
 call: theName arg: argOne arg: argTwo
   | args |
-  args <- Array new: 2.
+  args := Array new: 2.
   args at: 1 put: argOne.
   args at: 2 put: argTwo.
   ^self call: theName args: args.
@@ -3547,7 +3547,7 @@ call: theName arg: argOne arg: argTwo
 METHOD FFI
 call: theName arg: argOne arg: argTwo arg: argThree
   | args |
-  args <- Array new: 3.
+  args := Array new: 3.
   args at: 1 put: argOne.
   args at: 2 put: argTwo.
   args at: 3 put: argThree.
@@ -3560,14 +3560,14 @@ callInt: theName
 METHOD FFI
 callInt: theName arg: theArg
   | args |
-  args <- Array new: 1.
+  args := Array new: 1.
   args at: 1 put: theArg.
   ^self callInt: theName args: args.
 !
 METHOD FFI
 callInt: theName arg: argOne arg: argTwo
   | args |
-  args <- Array new: 2.
+  args := Array new: 2.
   args at: 1 put: argOne.
   args at: 2 put: argTwo.
   ^self callInt: theName args: args.
@@ -3575,7 +3575,7 @@ callInt: theName arg: argOne arg: argTwo
 METHOD FFI
 callInt: theName arg: argOne arg: argTwo arg: argThree
   | args |
-  args <- Array new: 3.
+  args := Array new: 3.
   args at: 1 put: argOne.
   args at: 2 put: argTwo.
   args at: 3 put: argThree.
@@ -3588,14 +3588,14 @@ callStr: theName
 METHOD FFI
 callStr: theName arg: theArg
   | args |
-  args <- Array new: 1.
+  args := Array new: 1.
   args at: 1 put: theArg.
   ^self callStr: theName args: args.
 !
 METHOD FFI
 callStr: theName arg: argOne arg: argTwo
   | args |
-  args <- Array new: 2.
+  args := Array new: 2.
   args at: 1 put: argOne.
   args at: 2 put: argTwo.
   ^self callStr: theName args: args.
@@ -3603,7 +3603,7 @@ callStr: theName arg: argOne arg: argTwo
 METHOD FFI
 callStr: theName arg: argOne arg: argTwo arg: argThree
   | args |
-  args <- Array new: 3.
+  args := Array new: 3.
   args at: 1 put: argOne.
   args at: 2 put: argTwo.
   args at: 3 put: argThree.
@@ -3612,34 +3612,34 @@ callStr: theName arg: argOne arg: argTwo arg: argThree
 METHOD FFI
 call: theName args: theArgs
   | func args |
-  func <- self at: theName.
-  args <- theArgs asArray.
+  func := self at: theName.
+  args := theArgs asArray.
   <234 handle func args>
 !
 METHOD FFI
 callInt: theName args: theArgs
   | func args |
-  func <- self at: theName.
-  args <- theArgs asArray.
+  func := self at: theName.
+  args := theArgs asArray.
   <235 handle func args>
 !
 METHOD FFI
 callStr: theName args: theArgs
   | func args |
-  func <- self at: theName.
-  args <- theArgs asArray.
+  func := self at: theName.
+  args := theArgs asArray.
   <236 handle func args>
 !
 METHOD FFI
 getInt: theName
   | symb |
-  symb <- self at: theName.
+  symb := self at: theName.
   ^<240 handle symb>
 !
 METHOD FFI
 setInt: theName value: anInt
   | symb |
-  symb <- self at: theName.
+  symb := self at: theName.
   <241 handle symb anInt>
 !
 COMMENT --------- System ----------
@@ -3685,7 +3685,7 @@ COMMENT --------- Pathname ---------
 METHOD MetaPathname
 new
   | obj |
-  obj <- super new.
+  obj := super new.
   obj init.
 
   ^obj
@@ -3693,7 +3693,7 @@ new
 METHOD MetaPathname
 new: pathname
   | obj |
-  obj <- self new.
+  obj := self new.
   obj path: pathname.
   ^obj
 !
@@ -3703,11 +3703,11 @@ separator
 !
 METHOD Pathname
 init
-  path <- ''
+  path := ''
 !
 METHOD Pathname
 path: pathname
-  path <- pathname asString
+  path := pathname asString
 !
 METHOD Pathname
 path
@@ -3715,22 +3715,22 @@ path
 !
 METHOD Pathname
 + other
-  path <- path + other printString
+  path := path + other printString
 !
 METHOD Pathname
 suffix
   | index |
-  index <- path highestIndexOf: $..
+  index := path highestIndexOf: $..
   index notNil ifTrue: [ ^path from: index to: path size ].
   ^nil
 !
 METHOD Pathname
 replaceOrAddSuffix: suffix
   | index pathWithoutSuffix |
-  index <- path highestIndexOf: $..
-  pathWithoutSuffix <- path.
-  index notNil ifTrue: [ pathWithoutSuffix <- path from: 1 to: index - 1 ].
-  path <- pathWithoutSuffix + suffix asString
+  index := path highestIndexOf: $..
+  pathWithoutSuffix := path.
+  index notNil ifTrue: [ pathWithoutSuffix := path from: 1 to: index - 1 ].
+  path := pathWithoutSuffix + suffix asString
 !
 METHOD Pathname
 asString
@@ -3744,7 +3744,7 @@ COMMENT -------- Image --------
 METHOD MetaImage
 new
   | obj |
-  obj <- super new.
+  obj := super new.
   obj imagePathname: ''.
   obj sourcePathname: ''.
   ^obj
@@ -3752,7 +3752,7 @@ new
 METHOD MetaImage
 writeSource
   | obj |
-  obj <- self new.
+  obj := self new.
   ^obj writeSource
 !
 METHOD Image
@@ -3761,7 +3761,7 @@ imagePathname
 !
 METHOD Image
 imagePathname: path
-  imagePathname <- Pathname new: imagePathname asString
+  imagePathname := Pathname new: imagePathname asString
 !
 METHOD Image
 sourcePathname
@@ -3769,20 +3769,20 @@ sourcePathname
 !
 METHOD Image
 sourcePathname: path
-  sourcePathname <- Pathname new: sourcePathname asString
+  sourcePathname := Pathname new: sourcePathname asString
 !
 METHOD Image
 writeSource
   | path |
-  (sourcePathname isNil or: [ sourcePathname asString isEmpty ]) ifTrue: [ path <- 'imageSourceTest' ] ifFalse: [ path <- sourcePathname ].
+  (sourcePathname isNil or: [ sourcePathname asString isEmpty ]) ifTrue: [ path := 'imageSourceTest' ] ifFalse: [ path := sourcePathname ].
   ^self writeSource: path
 !
 METHOD Image
 writeSource: path
   | file |
-  sourcePathname <- Pathname new: path asString.
+  sourcePathname := Pathname new: path asString.
 
-  file <- File open: sourcePathname asString mode: 'wb'.
+  file := File open: sourcePathname asString mode: 'wb'.
 
   self writeClassesTo: file.
   self writeMethodsTo: file.
@@ -3798,7 +3798,7 @@ writeSource: path
 !
 METHOD Image
 writeClassesTo: file
-  visited <- Dictionary new.
+  visited := Dictionary new.
   globals do: [ :cls |
     (cls isKindOf: Class)
       ifTrue: [
@@ -3809,7 +3809,7 @@ writeClassesTo: file
 !
 METHOD Image
 writeMethodsTo: file
-  visited <- Dictionary new.
+  visited := Dictionary new.
   globals do: [ :cls |
     (cls isKindOf: Class)
       ifTrue: [
@@ -3824,14 +3824,14 @@ writeClass: cls to: file
 
   (visited includes: cls asString asSymbol) ifTrue: [ ^self ].
 
-  parent <- cls parent.
+  parent := cls parent.
   parent isNil ifFalse: [ (visited includes: parent asString asSymbol) ifFalse: [ self writeClass: parent to: file ] ].
   visited at: cls asString asSymbol put: 1.
 
   cls = Object ifTrue: [ ^self ].
-  stmt <- 'RAWCLASS ' + cls asString + ' ' + cls class asString + ' ' + parent asString.
-  vars <- cls variables.
-  vars notNil ifTrue: [ vars do: [ :v | stmt <- stmt + ' ' + v asString ] ].
+  stmt := 'RAWCLASS ' + cls asString + ' ' + cls class asString + ' ' + parent asString.
+  vars := cls variables.
+  vars notNil ifTrue: [ vars do: [ :v | stmt := stmt + ' ' + v asString ] ].
   file write: stmt.
   file newline
 !
@@ -3841,13 +3841,13 @@ writeMethodsOf: cls to: file
 
   (visited includes: cls asString asSymbol) ifTrue: [ ^self ].
 
-  parent <- cls parent.
+  parent := cls parent.
   parent isNil ifFalse: [ (visited includes: parent asString asSymbol) ifFalse: [ self writeMethodsOf: parent to: file ] ].
   visited at: cls asString asSymbol put: 1.
 
   file write: ( 'COMMENT ----------' + cls asString + '---------' ).
   file newline.
-  methods <- cls methods.
+  methods := cls methods.
   methods isNil ifTrue: [ ^nil ].
   methods do: [ :m | self writeMethod: m of: cls to: file ]
 !
@@ -3855,9 +3855,9 @@ METHOD Image
 writeMethod: meth of: cls to: file
   | stmt txt |
 
-  txt <- meth text asString.
+  txt := meth text asString.
 
-  stmt <- 'METHOD ' + cls asString.
+  stmt := 'METHOD ' + cls asString.
   file write: stmt.
   file newline.
   file write: txt.
@@ -3876,35 +3876,35 @@ new
 !
 METHOD MetaGuiPrimitives
 instance
-	theInstance isNil ifTrue: [ theInstance <- super new. theInstance init ].
+	theInstance isNil ifTrue: [ theInstance := super new. theInstance init ].
 	^theInstance
 !
 METHOD MetaGuiPrimitives
 resetInstance
   "Attention: This method MUST be called before this class can be used!"
-  theInstance <- nil
+  theInstance := nil
 !
 METHOD MetaGuiPrimitives
 test
   | p b bb v d e done |
-  p <- GuiPrimitives instance.
+  p := GuiPrimitives instance.
 
   p message: 'This is a simple test!'.
 
-  b <- p iupButton: 'Click Me!' action: 'button1Action'.
-  bb <- p iupButton: 'And me, too!'.
-  v <- p iupVbox: b.
+  b := p iupButton: 'Click Me!' action: 'button1Action'.
+  bb := p iupButton: 'And me, too!'.
+  v := p iupVbox: b.
   p iupAppend: bb to: v.
-  d <- p iupDialog: v.
+  d := p iupDialog: v.
   p iupShow: d.
 
 
 "  p iupMainLoop."
   p registerAction: 'button1Action'.
-  done <- false.
+  done := false.
   [ done ] whileFalse: [
-    e <- p loopStep.
-    [ e isNil] whileTrue: [ p sleep: 10. e <- p loopStep. ]
+    e := p loopStep.
+    [ e isNil] whileTrue: [ p sleep: 10. e := p loopStep. ]
     'An event occured!!!' printNl.
     e asString printNl.
   ]
@@ -3913,7 +3913,7 @@ test
 !
 METHOD GuiPrimitives
 init
-  iup <- FFI new: 'iup.dll'.
+  iup := FFI new: 'iup.dll'.
   self initFunctions.
 
   self iupOpen.
@@ -3922,7 +3922,7 @@ METHOD GuiPrimitives
 release
   self iupClose.
   iup close.
-  iup <- nil
+  iup := nil
 !
 METHOD GuiPrimitives
 iup
@@ -3987,13 +3987,13 @@ iupAppend: item to: box
 METHOD GuiPrimitives
 registerAction: action
   | a |
-  a <- action asString.
+  a := action asString.
   <237 a>
 !
 METHOD GuiPrimitives
 registerListAction: action
   | a |
-  a <- action asString.
+  a := action asString.
   <238 a>
 !
 METHOD GuiPrimitives

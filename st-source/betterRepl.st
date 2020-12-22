@@ -23,8 +23,8 @@ DEALINGS IN THE SOFTWARE.
 " Convenience functions "
 !String
 leftStripCt | i |
-	i <- 1.
-	[i <= self size and: [(self at: i) isBlank]] whileTrue: [i <- i + 1.].
+	i := 1.
+	[i <= self size and: [(self at: i) isBlank]] whileTrue: [i := i + 1.].
 	^i.
 !
 
@@ -44,13 +44,13 @@ occurrencesOf: aChar
 
 !ClassExtension
 for: x
-	class <- x.
+	class := x.
 !
 
 !ClassExtension
 extend: str | p node |
-	p <- Parser new fromExtendBlock: str instanceVars: class instanceVariables.
-	node <- p parseExtendBlock: class class variables.
+	p := Parser new fromExtendBlock: str instanceVars: class instanceVariables.
+	node := p parseExtendBlock: class class variables.
 	node classMethods do: [:m|
 		class class addMethod: m text fromFile: m file atLine: m line.
 	].
@@ -73,12 +73,12 @@ subclass: nm extend: str
 !Class
 subclass: nm classVariables: cv extend: str | p node c |
 	" Parse the extend first to get variables "
-	p <- Parser new fromExtendBlock: str instanceVars: (Array new: 0).
-	node <- p parseExtendBlock: cv.
+	p := Parser new fromExtendBlock: str instanceVars: (Array new: 0).
+	node := p parseExtendBlock: cv.
 	node isNil ifTrue: [^nil].
 
 	" Make the subclass "
-	c <- self subclass: nm variables: node instanceVars classVariables: cv.
+	c := self subclass: nm variables: node instanceVars classVariables: cv.
 
 	" Add the class methods"
 	node classMethods do: [:m|
@@ -95,9 +95,9 @@ subclass: nm classVariables: cv extend: str | p node c |
 
 !ClassExtensionNode
 instanceVars: anArray methods: aList classMethods: anotherList
-	instanceVars <- anArray.
-	methods <- aList.
-	classMethods <- anotherList.
+	instanceVars := anArray.
+	methods := aList.
+	classMethods := anotherList.
 !
 
 !ClassExtensionNode
@@ -129,57 +129,57 @@ lineNum
 " Read a nestable thing as a string "
 !Parser
 readStringBlock | begin ln nesting nested push pop c i |
-	begin <- index.
-	ln <- lineNum.
+	begin := index.
+	ln := lineNum.
 	token isNil
 	ifTrue: [
-		nesting <- nil.
+		nesting := nil.
 	]
 	ifFalse: [
-		nesting <- token at: 1.
+		nesting := token at: 1.
 	].
-	nested <- Array new: 0.
+	nested := Array new: 0.
 
-	push <- [:v|
-		nested <- nested with: nesting.
-		nesting <- v.
+	push := [:v|
+		nested := nested with: nesting.
+		nesting := v.
 	].
-	pop <- [
+	pop := [
 		nested size = 0 ifTrue: [
-			index <- i.
-			lineNum <- ln.
+			index := i.
+			lineNum := ln.
 			self nextLex.
 			^text from: begin to: (i-1)
 		].
-		nesting <- nested at: nested size.
-		nested <- nested from: 1 to: (nested size - 1).
+		nesting := nested at: nested size.
+		nested := nested from: 1 to: (nested size - 1).
 	].
 
-	i <- index.
+	i := index.
 	[i <= text size] whileTrue: [
-		c <- text at: i.
+		c := text at: i.
 
-		c = Char newline ifTrue: [ ln <- ln + 1. ].
+		c = Char newline ifTrue: [ ln := ln + 1. ].
 
 		c = $' ifTrue: [
 			" Search for string end "
-			i <- i + 1.
+			i := i + 1.
 			[i <= text size and: [(text at: i) ~= $']] whileTrue: [
-				i <- i + 1.
+				i := i + 1.
 			].
 		].
 
 		c = $" ifTrue: [
 			" Just search for the comment end "
-			i <- i + 1.
+			i := i + 1.
 			[i <= text size and: [(text at: i) ~= $"]] whileTrue: [
-				i <- i + 1.
+				i := i + 1.
 			].
 		].
 
 		c = $$ ifTrue: [
 			" Skip the next character "
-			i <- i + 1.
+			i := i + 1.
 		].
 
 		c = $( ifTrue: [
@@ -196,7 +196,7 @@ readStringBlock | begin ln nesting nested push pop c i |
 
 		(c = $. and: [nesting isNil]) ifTrue: pop.
 
-		i <- i + 1.
+		i := i + 1.
 	].
 
 	^nil
@@ -210,67 +210,67 @@ fromExtendBlock: aString instanceVars: anArray | line c |
 	self fileName: '' lineNum: 1 text: aString instanceVars: anArray.
 
 	" Read the file name "
-	line <- ''.
-	c <- self currentChar.
+	line := ''.
+	c := self currentChar.
 	[ c = Char newline ] whileFalse: [
-		line <- line + c asString.
-		c <- self nextChar.
+		line := line + c asString.
+		c := self nextChar.
 	].
-	fileName <- line.
+	fileName := line.
 
 	" And the line number "
-	line <- ''.
-	[ c <- self nextChar. c = Char newline ] whileFalse: [
-		line <- line + c asString.
+	line := ''.
+	[ c := self nextChar. c = Char newline ] whileFalse: [
+		line := line + c asString.
 	].
 	self nextChar.
-	lineNum <- line asNumber.
+	lineNum := line asNumber.
 !
 
 " Parse a blockalike that contains a class declaration "
 !Parser
 parseExtendBlock: inClassVars | classVars iv ms cms isClassMethod mn mna mb beforeName afterName ln p meth node |
-	classVars <- inClassVars.
-	classVars isNil ifTrue: [classVars <- (Array new: 0)].
-	iv <- classVars + instNames.
-	ms <- List new.
-	cms <- List new.
+	classVars := inClassVars.
+	classVars isNil ifTrue: [classVars := (Array new: 0)].
+	iv := classVars + instNames.
+	ms := List new.
+	cms := List new.
 
 	[true] whileTrue: [
 		self skipBlanks.
-		beforeName <- index.
-		ln <- lineNum.
+		beforeName := index.
+		ln := lineNum.
 		self nextLex.
 
 		tokenType = $|
 		ifTrue: [
 			" This is instance variable declarations "
-			iv <- classVars + self readMethodVariables.
-			beforeName <- index.
+			iv := classVars + self readMethodVariables.
+			beforeName := index.
 			self skipBlanks.
-			ln <- lineNum.
+			ln := lineNum.
 			self nextLex.
 		].
 
 		token isNil ifTrue: [
-			node <- ClassExtensionNode new instanceVars: iv methods: ms classMethods: cms.
+			node := ClassExtensionNode new instanceVars: iv methods: ms classMethods: cms.
 			^node
 		].
 
 		" Must be a method declaration "
-		isClassMethod <- false.
+		isClassMethod := false.
 		token = 'class' ifTrue: [
 			" It's a class method "
-			isClassMethod <- true.
-			beforeName <- index.
+			isClassMethod := true.
+			beforeName := index.
 			self nextLex.
 		].
 
 		" Get the name and arguments "
-		argNames <- Array with: #self.
-		mn <- self readMethodName.
+		argNames := Array with: #self.
+		mn := self readMethodName.
 		mn isNil ifTrue: [^mn].
-		afterName <- index - 2.
+		afterName := index - 2.
 
 		tokenType = $[ ifFalse: [
 			self error: 'invalid method declaration'.
@@ -278,31 +278,31 @@ parseExtendBlock: inClassVars | classVars iv ms cms isClassMethod mn mna mb befo
 		].
 
 		" Read the method block "
-		mb <- self readStringBlock.
+		mb := self readStringBlock.
 		mb isNil ifTrue: [
 			self error: 'cannot find end of method'.
 			^nil
 		].
-		mb <- ((text from: beforeName to: afterName) + mb).
+		mb := ((text from: beforeName to: afterName) + mb).
 
 		" And pass it to another parser "
 		isClassMethod
 		ifTrue: [
-			p <- Parser new
+			p := Parser new
 				fileName: fileName
 				lineNum: ln
 				text: mb
 				instanceVars: classVars.
-			meth <- p parse: nil.
+			meth := p parse: nil.
 			cms add: meth.
 		]
 		ifFalse: [
-			p <- Parser new
+			p := Parser new
 				fileName: fileName
 				lineNum: ln
 				text: mb
 				instanceVars: iv.
-			meth <- p parse: nil.
+			meth := p parse: nil.
 			ms add: meth.
 		].
 	]
@@ -322,7 +322,7 @@ rest
 
 !Parser
 setErrBlock: to
-	errBlock <- to
+	errBlock := to
 !
 
 " The REPL itself "
@@ -331,13 +331,13 @@ setErrBlock: to
 
 =REPLFileReader
 fileIn: nm | fr |
-	fr <- REPLFileReader new withFile: nm.
+	fr := REPLFileReader new withFile: nm.
 	fr fileIn.
 !
 
 !REPLFileReader
 withFile: nm
-	file <- File openRead: nm.
+	file := File openRead: nm.
 	file opened ifFalse: [ ^self error: 'cannot open file ' + nm ].
 	^ self
 !
@@ -346,7 +346,7 @@ withFile: nm
 fileIn
 	REPL new repl: file.
 	file close.
-	file <- nil.
+	file := nil.
 !
 
 !REPL
@@ -356,11 +356,11 @@ repl
 
 =REPL
 main | fileInMeth arg doRepl rf command |
-	fileInMeth <- Undefined parseMethod: 'fileIn: x ^x fileIn' fromFile: 'REPL' atLine: 1.
+	fileInMeth := Undefined parseMethod: 'fileIn: x ^x fileIn' fromFile: 'REPL' atLine: 1.
 
 	" go through arguments "
-	doRepl <- true.
-	[arg <- System arg. arg notNil] whileTrue: [
+	doRepl := true.
+	[arg := System arg. arg notNil] whileTrue: [
 		(arg at: 1) = $-
 		ifTrue: [
 			arg = '-v' ifTrue: [ System version printNl. ^0 ].
@@ -384,7 +384,7 @@ main | fileInMeth arg doRepl rf command |
 
 			arg = '--lst' ifTrue: [
 				" read in a standard LST file "
-				doRepl <- false.
+				doRepl := false.
 				File fileIn: System arg.
 			].
 
@@ -394,8 +394,8 @@ main | fileInMeth arg doRepl rf command |
 			].
 		]
 		ifFalse: [
-			doRepl <- false.
-			rf <- REPLFileReader new withFile: arg.
+			doRepl := false.
+			rf := REPLFileReader new withFile: arg.
 			Context new perform: fileInMeth withArguments: (Array with: nil with: rf).
 		].
 	].
@@ -411,19 +411,19 @@ repl: file | readLine handler line i |
 	" Initial state "
 	file isNil
 	ifTrue: [
-		fileName <- '(input)'.
-		readLine <- [line <- String input].
+		fileName := '(input)'.
+		readLine := [line := String input].
 	]
 	ifFalse: [
-		fileName <- file name.
-		readLine <- [line <- file readFile].
+		fileName := file name.
+		readLine := [line := file readFile].
 	].
-	lineNum <- 1.
-	cmd <- ''.
+	lineNum := 1.
+	cmd := ''.
 
-	variables <- (Array new: 0).
-	inst <- (Object subclass: #REPLInstance) new.
-	transferer <- Undefined parseMethod: 'transfer: x ^x transfer' fromFile: 'REPL' atLine: 1.
+	variables := (Array new: 0).
+	inst := (Object subclass: #REPLInstance) new.
+	transferer := Undefined parseMethod: 'transfer: x ^x transfer' fromFile: 'REPL' atLine: 1.
 
 	" Initial prompt "
 	file isNil ifTrue: [
@@ -431,8 +431,8 @@ repl: file | readLine handler line i |
 	].
 
 	" Main handler "
-	handler <- [
-		cmd <- cmd + line + String newline.
+	handler := [
+		cmd := cmd + line + String newline.
 
 		" Run command(s) "
 		(self replCmdAndPrint: file isNil) ifFalse: [^self].
@@ -449,7 +449,7 @@ repl: file | readLine handler line i |
 	].
 
 	[readLine value. line isNil] whileFalse: handler.
-	line <- '.'.
+	line := '.'.
 	handler value.
 
 	cmd = '' ifFalse: [
@@ -459,8 +459,8 @@ repl: file | readLine handler line i |
 
 !REPL
 trimCmd: i
-	lineNum <- lineNum + ((cmd from: 1 to: i-1) occurrencesOf: Char newline).
-	cmd <- cmd from: i.
+	lineNum := lineNum + ((cmd from: 1 to: i-1) occurrencesOf: Char newline).
+	cmd := cmd from: i.
 !
 
 !REPL
@@ -470,7 +470,7 @@ leftStripCmd | i |
 
 !REPL
 dropOneLine
-	[cmd ~= '' and: [(cmd at: 1) ~= Char newline]] whileTrue: [cmd <- cmd from: 2].
+	[cmd ~= '' and: [(cmd at: 1) ~= Char newline]] whileTrue: [cmd := cmd from: 2].
 !
 
 !REPL
@@ -479,7 +479,7 @@ replCmdAndPrint: doPrint | prefix i |
 
 	cmd = '' ifTrue: [^true].
 
-	prefix <- cmd at: 1.
+	prefix := cmd at: 1.
 
 	prefix = $| ifTrue: [
 		self replVars.
@@ -494,7 +494,7 @@ replCmdAndPrint: doPrint | prefix i |
 
 	prefix = $. ifTrue: [
 		" Empty statement "
-		cmd <- cmd from: 2.
+		cmd := cmd from: 2.
 		^self replCmdAndPrint: doPrint
 	].
 
@@ -507,17 +507,17 @@ replCmdAndPrint: doPrint | prefix i |
 
 !REPL
 replCodeAndPrint: doPrint | p ln stmt text meth res |
-	p <- Parser new fileName: fileName lineNum: lineNum text: cmd instanceVars: (Array new: 0).
-	ln <- lineNum.
-	stmt <- p readStringBlock.
+	p := Parser new fileName: fileName lineNum: lineNum text: cmd instanceVars: (Array new: 0).
+	ln := lineNum.
+	stmt := p readStringBlock.
 	stmt isNil ifTrue: [^false].
 
 	self trimCmd: p index.
 
-	text <- 'step ^' + stmt.
-	meth <- (globals at: #REPLInstance) addMethod: text fromFile: fileName atLine: ln.
+	text := 'step ^' + stmt.
+	meth := (globals at: #REPLInstance) addMethod: text fromFile: fileName atLine: ln.
 	meth isNil ifFalse: [
-		res <- (Context new perform: meth withArguments: (Array with: inst)).
+		res := (Context new perform: meth withArguments: (Array with: inst)).
 		doPrint ifTrue: [res printNl.].
 		(globals at: #REPLInstance) removeMethod: #step.
 	].
@@ -528,34 +528,34 @@ replCodeAndPrint: doPrint | p ln stmt text meth res |
 !REPL
 replVars | p c newC newVars val |
 	" Get the new variables "
-	p <- Parser new fileName: fileName lineNum: lineNum text: cmd instanceVars: (Array new: 0).
+	p := Parser new fileName: fileName lineNum: lineNum text: cmd instanceVars: (Array new: 0).
 	p setErrBlock: [self dropOneLine. ^self].
 	p nextLex.
-	newVars <- p readMethodVariables.
+	newVars := p readMethodVariables.
 	self trimCmd: p index.
-	newVars <- variables + newVars.
+	newVars := variables + newVars.
 
 	" Make the new instance type "
-	c <- globals at: #REPLInstance.
-	newC <- Object subclass: #REPLInstance variables: newVars.
-	newInst <- newC new.
+	c := globals at: #REPLInstance.
+	newC := Object subclass: #REPLInstance variables: newVars.
+	newInst := newC new.
 
 	" Copy over the variables "
 	variables do: [:var|
-		var <- var asString.
+		var := var asString.
 		c addMethod: 'getv ^' + var fromFile: 'REPL' atLine: 1.
-		newC addMethod: 'setv: x ' + var + ' <- x' fromFile: 'REPL' atLine: 1.
+		newC addMethod: 'setv: x ' + var + ' := x' fromFile: 'REPL' atLine: 1.
 		(Context new perform: transferer withArguments: (Array with: nil with: self)).
 		newC removeMethod: #setv:.
 	].
-	variables <- newVars.
-	inst <- newInst.
+	variables := newVars.
+	inst := newInst.
 !
 
 !REPL
 replSpecial | p |
 	" Get the command "
-	p <- Parser new fileName: fileName lineNum: lineNum text: cmd instanceVars: (Array new: 0).
+	p := Parser new fileName: fileName lineNum: lineNum text: cmd instanceVars: (Array new: 0).
 	p nextChar.
 	p nextLex.
 
