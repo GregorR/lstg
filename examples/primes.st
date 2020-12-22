@@ -22,9 +22,3 @@ primes: n | cand count |
 	].
 	Char newline print
 !
-
-m | arg |
-	[arg <- System arg. arg notNil] whileTrue: [
-		Number primes: arg asNumber.
-	]
-!
