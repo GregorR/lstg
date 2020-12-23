@@ -2551,7 +2551,7 @@ fileInDispatch: cmd atLine: line | c rline |
 		rline := line.
 		[ c := self readChar. c ~= $" ] whileTrue: [
 			" Consume chars until closing quote "
-			(c = Char newline) ifTrue: [rline := line + 1].
+			(c = Char newline) ifTrue: [rline := rline + 1].
 			nil
 		].
 		^ rline
@@ -2892,8 +2892,14 @@ nameNode: name
 			ifTrue: [ ^ (InstNode at: lineNum) position: i ] ].
 	^ (LiteralNode at: lineNum);
 		value: (globals at: name
-			ifAbsent: [ ^ self error:
-				'unrecognized name: ' + name printString ])
+			ifAbsent: [
+		" FIXME: Look it up at runtime, but make this only conditionally allowed "
+		^ (MessageNode at: lineNum)
+			receiver: ((LiteralNode at: lineNum) value: globals)
+			name: #at:
+			arguments: (List with:
+				((LiteralNode at: lineNum) value: name))
+	])
 !
 METHOD Parser
 readLiteral   | node |
@@ -3026,10 +3032,7 @@ keywordContinuation: base  | receiver name args lnum |
 		ifTrue: [
 			" Extension shorthand "
 			name := name + 'extend:'.
-			args add: ((LiteralNode at: lineNum)
-				value: fileName + String newline +
-					lineNum asString + String newline +
-					self readStringBlock).
+			args add: self readExtendBlock.
 		].
 
 	^ (MessageNode at: lnum) receiver:

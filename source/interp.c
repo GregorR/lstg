@@ -848,6 +848,9 @@ int execute(struct object *aProcess, int ticks)
                */
               returnedValue = newInteger(i + j);
               break;
+            case 3:            /* == */
+              returnedValue = (i == j) ? trueObject : falseObject;
+              break;
           }
           stack->data[stackTop++] = returnedValue;
           break;

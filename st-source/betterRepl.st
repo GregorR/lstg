@@ -39,80 +39,453 @@ occurrencesOf: aChar
 !
 
 " Class extendability "
-+Object subclass: #ClassExtension variables: #(class)
-+Node subclass: #ClassExtensionNode variables: #(instanceVars methods classMethods)
++ParserNode subclass: #ExtendBlockNode variables: #(tempSlot steps)
++ParserNode subclass: #ExtendBlockStmtNode.
++ExtendBlockStmtNode subclass: #ExtendInstanceVarsNode variables: #(vars)
++ExtendBlockStmtNode subclass: #ExtendMethodNode variables: #(fileName lineNum text)
++ExtendBlockStmtNode subclass: #ExtendExtraMethodNode variables: #(target fileName lineNum text)
++ExtendBlockStmtNode subclass: #ExtendClassVarDeclNode variables: #(target value)
 
-!ClassExtension
-for: x
-	class := x.
+!Parser
+readExtendBlock | steps tempSlot lnum |
+	steps := List new.
+
+	" The extend block itself takes two arguments "
+	tempSlot := tempNames size.
+	maxTemps := maxTemps max: tempSlot + 2.
+
+	" Now read in the content "
+	lnum := lineNum.
+	self nextLex.
+	[ tokenType notNil and: [ tokenType ~= $] ] ] whileTrue: [
+		steps add: self readExtendStatement
+	].
+	tokenType isNil ifTrue: [
+		^self error: 'Invalid extend block!'
+	].
+	^(ExtendBlockNode at: lnum) tempSlot: tempSlot steps: steps
 !
 
-!ClassExtension
-extend: str | p node |
-	p := Parser new fromExtendBlock: str instanceVars: class instanceVariables.
-	node := p parseExtendBlock: class class variables.
-	node classMethods do: [:m|
-		class class addMethod: m text fromFile: m file atLine: m line.
+!Parser
+readExtendStatement | preIndex preLine ret |
+	" Easiest case: Instance variables "
+	tokenType = $| ifTrue: [ ^self readExtendInstanceVars ].
+
+	" Otherwise, we'll only know when we get to an interesting token "
+	preIndex := index - token size.
+	preLine := lineNum.
+
+	[self tokenIsName or: [self tokenIsKeyword]] whileTrue: [
+		self nextLex.
 	].
-	node methods do: [:m|
-		class addMethod: m text fromFile: m file atLine: m line.
-	].
-	^ class
+
+	index := preIndex.
+	lineNum := preLine.
+
+	" Now decide based on what we have "
+	tokenType = $[ ifTrue: [ ^self readExtendMethod ].
+	token = '>>' ifTrue: [ ^self readExtendExtraMethod ].
+	self tokenIsArrow ifTrue: [ ^self readExtendClassVarDecl ].
+	^self error: 'Invalid extend statement'
 !
 
+!Parser
+readExtendInstanceVars | ret |
+	ret := (ExtendInstanceVarsNode at: lineNum) vars: self readMethodVariables.
+	self nextLex.
+	^ret
+!
+
+!Parser
+readExtendMethod | preIndex ln name methodText |
+	preIndex := index.
+	ln := lineNum.
+	self nextLex.
+	self readMethodName.
+	tokenType = $[ ifFalse: [
+		^self error: 'Invalid method name'
+	].
+	name := text from: preIndex to: index - 2.
+
+	" Now read the entire method as a string "
+	methodText := self readStringBlock.
+	methodText isNil ifTrue: [
+		^self error: 'Invalid method body'
+	].
+
+	" And put it together "
+	methodText := name + ' ' + methodText.
+	^(ExtendMethodNode at: ln) fileName: fileName lineNum: ln text: methodText.
+!
+
+!Parser
+readExtendExtraMethod | target ln node |
+	self nextLex.
+
+	" The target has to be in a unary continuation due to precedence "
+	target := self unaryContinuation: self readTerm.
+
+	" And at this point we must find >> "
+	token = '>>' ifFalse: [
+		^self error: 'Invalid foreign method extension'
+	].
+	self skipBlanks.
+	ln := lineNum.
+
+	" The rest is the method itself "
+	node := self readExtendMethod.
+	^(ExtendExtraMethodNode at: ln) target: target fileName: fileName lineNum: ln text: node text
+!
+
+!Parser
+readExtendClassVarDecl | target value |
+	" The target is just a name "
+	self nextLex.
+	self tokenIsName ifFalse: [
+		^self error: 'Invalid class variable declaration'
+	].
+	target := token.
+	self nextLex.
+
+	" After that, it *must* have the arrow "
+	self tokenIsArrow ifFalse: [
+		^self error: 'Invalid class variable declaration'
+	].
+	self nextLex.
+
+	" The rest is just a normal expression "
+	value := self readExpression.
+
+	" After which it *must* have a . "
+	tokenType = $. ifFalse: [
+		^self error: 'Invalid class variable declaration'
+	].
+	self nextLex.
+
+	^(ExtendClassVarDeclNode at: lineNum) target: target value: value
+!
+
+" Nodes for class extendability "
+!ExtendBlockNode
+tempSlot: xtempSlot steps: xsteps
+	tempSlot := xtempSlot.
+	steps := xsteps.
+!
+
+!ExtendInstanceVarsNode
+vars: xvars
+	vars := xvars.
+!
+
+!ExtendMethodNode
+fileName: xfileName lineNum: xlineNum text: xtext
+	fileName := xfileName.
+	lineNum := xlineNum.
+	text := xtext.
+!
+
+!ExtendMethodNode
+text
+	^text
+!
+
+!ExtendExtraMethodNode
+target: xtarget fileName: xfileName lineNum: xlineNum text: xtext
+	target := xtarget.
+	fileName := xfileName.
+	lineNum := xlineNum.
+	text := xtext.
+!
+
+!ExtendClassVarDeclNode
+target: xtarget value: xvalue
+	target := xtarget.
+	value := xvalue.
+!
+
+" Compile an extend block into an actual block "
+!ExtendBlockNode
+compile: encoder block: inBlock | patchLocation |
+	" An extend block is just a special kind of block "
+	super compile: encoder.
+	encoder genHigh: 4 low: (encoder genLiteral: lineNum).
+	encoder genHigh: 12 low: tempSlot.
+	patchLocation := encoder genVal: 0.
+
+	" Our actual code chooses which step to perform based on user input "
+
+	" 0: Push nil so we'll have something if it all goes wrong "
+	encoder genHigh: 5 low: 10.
+
+	" 1: Class variable names "
+	self compile: encoder ifEq: 1 then: [
+		self compileClassVarNames: encoder.
+	].
+
+	" 2: Instance variables names "
+	self compile: encoder ifEq: 2 then: [
+		self compileInstanceVarNames: encoder.
+	].
+
+	" 3: Class variable values "
+	self compile: encoder ifEq: 3 then: [
+		self compileClassVarValues: encoder.
+	].
+
+	" 4: Add methods "
+	self compile: encoder ifEq: 4 then: [
+		self compileMethods: encoder.
+	].
+
+	encoder genHigh: 15 low: 2. " return top of stack "
+	encoder patch: patchLocation
+!
+
+" Compile a decision in an extend block of which step to perform "
+!ExtendBlockNode
+compile: encoder ifEq: val then: block | patchLocation |
+	" First, check if it's equal "
+	encoder genHigh: 3 low: tempSlot. " Compare the given step "
+	encoder genHigh: 5 low: val. " Against the comparator step "
+	encoder genHigh: 11 low: 3. " 11:3 is optimized == "
+
+	" Branch if it's false "
+	encoder genHigh: 15 low: 8. " branch if false instruction "
+	patchLocation := encoder genVal: 0.
+
+	" Pop the nil that's in the stack by default "
+	encoder genHigh: 15 low: 5.
+
+	" Now the actual steps "
+	block value.
+
+	" Return what it generated "
+	encoder genHigh: 15 low: 2. " return "
+
+	" And return to this point if it was false "
+	encoder patch: patchLocation.
+!
+
+" General function for compiling lists "
+!ExtendBlockNode
+compileList: encoder step: block | add |
+	" Make a list "
+	encoder genHigh: 4 low: (encoder genLiteral: List).
+	encoder pushArgs: 1.
+	encoder genHigh: 8 low: 1.
+	encoder genHigh: 9 low: (encoder genLiteral: #new).
+
+	" Then add the elements "
+	add := encoder genLiteral: #add:.
+	steps do: [:step|
+		block value: step value: add.
+	].
+!
+
+" 1: Generate variable names "
+!ExtendBlockNode
+compileClassVarNames: encoder
+	self compileList: encoder step: [:step :add|
+		step compileClassVarName: encoder addMethod: add.
+	].
+!
+
+!ExtendBlockStmtNode
+compileClassVarName: encoder addMethod: add
+	" Nothing "
+	^self
+!
+
+!ExtendBlockStmtNode
+compileListAdd: encoder addMethod: add value: block
+	" Duplicate the list "
+	encoder genHigh: 15 low: 4.
+
+	" Generating the argument "
+	encoder pushArgs: 2.
+	block value.
+	encoder popArgs: 1.
+
+	" Call "
+	encoder genHigh: 8 low: 2.
+	encoder genHigh: 9 low: add.
+
+	" Then pop our extraneous return "
+	encoder genHigh: 15 low: 5.
+!
+
+!ExtendClassVarDeclNode
+compileClassVarName: encoder addMethod: add
+	self compileListAdd: encoder addMethod: add value: [
+		encoder genHigh: 4 low: (encoder genLiteral: target asSymbol).
+	].
+!
+
+" 2: Generate instance variable names "
+!ExtendBlockNode
+compileInstanceVarNames: encoder
+	" Just go through each step, looking for one that generates instance variables "
+	steps do: [:step|
+		(step compileInstanceVarName: encoder) ifTrue: [^self].
+	].
+
+	" If we made it here, then nothing generated. Just return nil. "
+	encoder genHigh: 5 low: 10.
+!
+
+!ExtendBlockStmtNode
+compileInstanceVarName: encoder
+	^false
+!
+
+!ExtendInstanceVarsNode
+compileInstanceVarName: encoder
+	encoder genHigh: 4 low: (encoder genLiteral: vars).
+	^true
+!
+
+" 3: Generate variable values "
+!ExtendBlockNode
+compileClassVarValues: encoder
+	self compileList: encoder step: [:step :add|
+		step compileClassVarValue: encoder addMethod: add.
+	].
+!
+
+!ExtendBlockStmtNode
+compileClassVarValue: encoder addMethod: add
+	^self
+!
+
+!ExtendClassVarDeclNode
+compileClassVarValue: encoder addMethod: add
+	self compileListAdd: encoder addMethod: add value: [
+		value compile: encoder block: true.
+	].
+!
+
+" 4: Generate methods "
+!ExtendBlockNode
+compileMethods: encoder
+	" Put the target on the stack "
+	encoder genHigh: 3 low: tempSlot + 1.
+
+	" Then generate methods "
+	steps do: [:step|
+		step compileMethod: encoder.
+	].
+!
+
+!ExtendBlockStmtNode
+compileMethod: encoder
+	^self
+!
+
+!ExtendMethodNode
+compileMethod: encoder
+	" The target is on the stack, so dup it "
+	encoder genHigh: 15 low: 4.
+
+	" Push our arguments "
+	encoder pushArgs: 4.
+	encoder genHigh: 4 low: (encoder genLiteral: text).
+	encoder genHigh: 4 low: (encoder genLiteral: fileName).
+	encoder genHigh: 4 low: (encoder genLiteral: lineNum).
+	encoder popArgs: 3.
+
+	" Make the call "
+	encoder genHigh: 8 low: 4.
+	encoder genHigh: 9 low: (encoder genLiteral: #addMethod:fromFile:atLine:).
+
+	" And pop the resulting method "
+	encoder genHigh: 15 low: 5.
+!
+
+!ExtendExtraMethodNode
+compileMethod: encoder
+	" Get our target "
+	target compile: encoder block: true.
+
+	" Push our arguments "
+	encoder pushArgs: 4.
+	encoder genHigh: 4 low: (encoder genLiteral: text).
+	encoder genHigh: 4 low: (encoder genLiteral: fileName).
+	encoder genHigh: 4 low: (encoder genLiteral: lineNum).
+	encoder popArgs: 3.
+
+	" Make the call "
+	encoder genHigh: 8 low: 4.
+	encoder genHigh: 9 low: (encoder genLiteral: #addMethod:fromFile:atLine:).
+
+	" And pop the resulting method "
+	encoder genHigh: 15 low: 5.
+!
+
+" And finally, the actual class behavior for extensions "
 !Class
-extend
-	^ClassExtension new for: self
-!
+subclass: nm extend: eb | meta cv iv c index |
+	" Get the class variable names "
+	cv := (eb value: 1) asArray.
 
-!Class
-subclass: nm extend: str
-	^ self subclass: nm classVariables: (Array new: 0) extend: str
-!
+	" Make the metaclass "
+	meta := Class new name: ('Meta' + nm asString) asSymbol
+		parent: self class
+		variables: cv.
 
-!Class
-subclass: nm classVariables: cv extend: str | p node c |
-	" Parse the extend first to get variables "
-	p := Parser new fromExtendBlock: str instanceVars: (Array new: 0).
-	node := p parseExtendBlock: cv.
-	node isNil ifTrue: [^nil].
-
-	" Make the subclass "
-	c := self subclass: nm variables: node instanceVars classVariables: cv.
-
-	" Add the class methods"
-	node classMethods do: [:m|
-		c class addMethod: m text fromFile: m file atLine: m line.
+	" Get the instance variables "
+	iv := eb value: 2.
+	iv isNil ifTrue: [
+		iv := (Array new: 0).
 	].
 
-	" Add the methods "
-	node methods do: [:m|
-		c addMethod: m text fromFile: m file atLine: m line.
+	" Make the main class "
+	c := meta new name: nm
+		parent: self
+		variables: iv.
+	globals at: nm put: c.
+
+	" Fill the class variables' values "
+	cv := (eb value: 3) asArray.
+	index := self class instanceVariables size + 1.
+	cv do: [:value|
+		self in: c at: index put: value.
+		index := index + 1.
 	].
+
+	" And finally, add all methods "
+	eb value: 4 value: c.
 
 	^c
 !
 
-!ClassExtensionNode
-instanceVars: anArray methods: aList classMethods: anotherList
-	instanceVars := anArray.
-	methods := aList.
-	classMethods := anotherList.
++Object subclass: #ClassExtender variables: #(class)
+
+!Class
+extend
+	^ClassExtender new forClass: self
 !
 
-!ClassExtensionNode
-instanceVars
-	^instanceVars
+!ClassExtender
+forClass: xclass
+	class := xclass.
 !
 
-!ClassExtensionNode
-methods
-	^methods
-!
+!ClassExtender
+extend: eb | tmp |
+	" With an extension, there must be no class or instance variables defined "
+	tmp := eb value: 1.
+	tmp size > 0 ifTrue: [
+		^self error: 'Class variable declarations may not appear in class extensions'
+	].
+	tmp := eb value: 2.
+	tmp isNil ifFalse: [
+		^self error: 'Instance variable declarations may not appear in class extension'
+	].
 
-!ClassExtensionNode
-classMethods
-	^classMethods
+	" Now just add all the methods "
+	eb value: 4 value: class.
+
+	^class
 !
 
 " Parser extensions "
@@ -202,112 +575,6 @@ readStringBlock | begin ln nesting nested push pop c i |
 	^nil
 !
 
-" Create a parser from an extend block "
-!Parser
-fromExtendBlock: aString instanceVars: anArray | line c |
-	" Extend blocks have the filename on a line, then the line number on a "
-	" line, then the actual text of the block "
-	self fileName: '' lineNum: 1 text: aString instanceVars: anArray.
-
-	" Read the file name "
-	line := ''.
-	c := self currentChar.
-	[ c = Char newline ] whileFalse: [
-		line := line + c asString.
-		c := self nextChar.
-	].
-	fileName := line.
-
-	" And the line number "
-	line := ''.
-	[ c := self nextChar. c = Char newline ] whileFalse: [
-		line := line + c asString.
-	].
-	self nextChar.
-	lineNum := line asNumber.
-!
-
-" Parse a blockalike that contains a class declaration "
-!Parser
-parseExtendBlock: inClassVars | classVars iv ms cms isClassMethod mn mna mb beforeName afterName ln p meth node |
-	classVars := inClassVars.
-	classVars isNil ifTrue: [classVars := (Array new: 0)].
-	iv := classVars + instNames.
-	ms := List new.
-	cms := List new.
-
-	[true] whileTrue: [
-		self skipBlanks.
-		beforeName := index.
-		ln := lineNum.
-		self nextLex.
-
-		tokenType = $|
-		ifTrue: [
-			" This is instance variable declarations "
-			iv := classVars + self readMethodVariables.
-			beforeName := index.
-			self skipBlanks.
-			ln := lineNum.
-			self nextLex.
-		].
-
-		token isNil ifTrue: [
-			node := ClassExtensionNode new instanceVars: iv methods: ms classMethods: cms.
-			^node
-		].
-
-		" Must be a method declaration "
-		isClassMethod := false.
-		token = 'class' ifTrue: [
-			" It's a class method "
-			isClassMethod := true.
-			beforeName := index.
-			self nextLex.
-		].
-
-		" Get the name and arguments "
-		argNames := Array with: #self.
-		mn := self readMethodName.
-		mn isNil ifTrue: [^mn].
-		afterName := index - 2.
-
-		tokenType = $[ ifFalse: [
-			self error: 'invalid method declaration'.
-			^nil
-		].
-
-		" Read the method block "
-		mb := self readStringBlock.
-		mb isNil ifTrue: [
-			self error: 'cannot find end of method'.
-			^nil
-		].
-		mb := ((text from: beforeName to: afterName) + mb).
-
-		" And pass it to another parser "
-		isClassMethod
-		ifTrue: [
-			p := Parser new
-				fileName: fileName
-				lineNum: ln
-				text: mb
-				instanceVars: classVars.
-			meth := p parse: nil.
-			cms add: meth.
-		]
-		ifFalse: [
-			p := Parser new
-				fileName: fileName
-				lineNum: ln
-				text: mb
-				instanceVars: iv.
-			meth := p parse: nil.
-			ms add: meth.
-		].
-	]
-!
-
 " Get the rest of the parser content "
 !Parser
 rest
@@ -339,7 +606,7 @@ fileIn: nm | fr |
 withFile: nm
 	file := File openRead: nm.
 	file opened ifFalse: [ ^self error: 'cannot open file ' + nm ].
-	^ self
+	^self
 !
 
 !REPLFileReader
@@ -351,7 +618,7 @@ fileIn
 
 !REPL
 repl
-	^ self repl: nil
+	^self repl: nil
 !
 
 =REPL

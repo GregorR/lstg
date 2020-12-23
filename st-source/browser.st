@@ -171,13 +171,11 @@ on: top [
 		done ifFalse: [ ('Unknown command: ' + cmd) printNl ]
 	]
 ]
-].
 
-Browser class extend [
 " o:
 	Instantiate a browser on the named object
 "
-on: obj [
+Browser class >> on: obj [
 	self new on: obj
 ]
 ].
