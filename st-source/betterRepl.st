@@ -47,7 +47,7 @@ occurrencesOf: aChar
 +ExtendBlockStmtNode subclass: #ExtendClassVarDeclNode variables: #(target value)
 
 !Parser
-readExtendBlock | steps tempSlot lnum |
+readExtendBlock | steps step tempSlot lnum |
 	steps := List new.
 
 	" The extend block itself takes two arguments "
@@ -58,7 +58,8 @@ readExtendBlock | steps tempSlot lnum |
 	lnum := lineNum.
 	self nextLex.
 	[ tokenType notNil and: [ tokenType ~= $] ] ] whileTrue: [
-		steps add: self readExtendStatement
+		step := self readExtendStatement.
+		step isNil ifFalse: [steps add: step].
 	].
 	tokenType isNil ifTrue: [
 		^self error: 'Invalid extend block!'
@@ -68,8 +69,9 @@ readExtendBlock | steps tempSlot lnum |
 
 !Parser
 readExtendStatement | preIndex preLine ret |
-	" Easiest case: Instance variables "
+	" Easiest cases: Instance variables or extraneous .s "
 	tokenType = $| ifTrue: [ ^self readExtendInstanceVars ].
+	tokenType = $. ifTrue: [ self nextLex. ^nil ].
 
 	" Otherwise, we'll only know when we get to an interesting token "
 	preIndex := index - token size.
@@ -97,11 +99,12 @@ readExtendInstanceVars | ret |
 !
 
 !Parser
-readExtendMethod | preIndex ln name methodText |
+readExtendMethod | preIndex ln siv name methodText |
 	preIndex := index.
 	ln := lineNum.
 	self nextLex.
 	self readMethodName.
+	argNames := #(self).
 	tokenType = $[ ifFalse: [
 		^self error: 'Invalid method name'
 	].
@@ -112,6 +115,7 @@ readExtendMethod | preIndex ln name methodText |
 	methodText isNil ifTrue: [
 		^self error: 'Invalid method body'
 	].
+	self nextLex.
 
 	" And put it together "
 	methodText := name + ' ' + methodText.
@@ -277,7 +281,7 @@ compileList: encoder step: block | add |
 
 	" Then add the elements "
 	add := encoder genLiteral: #add:.
-	steps do: [:step|
+	steps reverseDo: [:step|
 		block value: step value: add.
 	].
 !
@@ -325,7 +329,7 @@ compileClassVarName: encoder addMethod: add
 !ExtendBlockNode
 compileInstanceVarNames: encoder
 	" Just go through each step, looking for one that generates instance variables "
-	steps do: [:step|
+	steps reverseDo: [:step|
 		(step compileInstanceVarName: encoder) ifTrue: [^self].
 	].
 
@@ -371,7 +375,7 @@ compileMethods: encoder
 	encoder genHigh: 3 low: tempSlot + 1.
 
 	" Then generate methods "
-	steps do: [:step|
+	steps reverseDo: [:step|
 		step compileMethod: encoder.
 	].
 !
@@ -425,7 +429,7 @@ compileMethod: encoder
 !Class
 subclass: nm extend: eb | meta cv iv c index |
 	" Get the class variable names "
-	cv := (eb value: 1) asArray.
+	cv := (eb value: 1) reverse asArray.
 
 	" Make the metaclass "
 	meta := Class new name: ('Meta' + nm asString) asSymbol
@@ -445,7 +449,7 @@ subclass: nm extend: eb | meta cv iv c index |
 	globals at: nm put: c.
 
 	" Fill the class variables' values "
-	cv := (eb value: 3) asArray.
+	cv := (eb value: 3) reverse asArray.
 	index := self class instanceVariables size + 1.
 	cv do: [:value|
 		self in: c at: index put: value.
