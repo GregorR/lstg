@@ -575,18 +575,6 @@ readStringBlock | begin ln nesting nested push pop c i |
 	^nil
 !
 
-" Get the rest of the parser content "
-!Parser
-rest
-	token isNil
-	ifTrue: [
-		^''
-	]
-	ifFalse: [
-		^token + (text from: index).
-	].
-!
-
 !Parser
 setErrBlock: to
 	errBlock := to
