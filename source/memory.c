@@ -63,7 +63,8 @@ static struct object *staticBase,
 
 static struct object *spaceOne,
                *spaceTwo;
-static int      spaceSize;
+static size_t   spaceOneSize,
+                spaceTwoSize;
 
 struct object  *memoryBase,
                *memoryPointer,
@@ -91,8 +92,8 @@ static LstUInt  staticRootTop = 0;
 
 int isDynamicMemory(struct object *x)
 {
-  return ((x >= spaceOne) && (x <= (spaceOne + spaceSize))) ||
-    ((x >= spaceTwo) && (x <= (spaceTwo + spaceSize)));
+  return ((x >= spaceOne) && (x <= (spaceOne + spaceOneSize))) ||
+    ((x >= spaceTwo) && (x <= (spaceTwo + spaceTwoSize)));
 }
 
 /*
@@ -112,15 +113,15 @@ void gcinit(int staticsz, int dynamicsz)
   staticTop = staticBase + staticsz;
   staticPointer = staticTop;
 
-  spaceSize = dynamicsz;
+  spaceOneSize = spaceTwoSize = dynamicsz;
   memoryBase = spaceOne;
-  memoryPointer = memoryBase + spaceSize;
+  memoryPointer = memoryBase + spaceOneSize;
   if(lstDebugging)
   {
     printf("space one 0x%p, top 0x%p,"
            " space two 0x%p , top 0x%p\n",
-           spaceOne, (spaceOne + spaceSize),
-           spaceTwo, (spaceTwo + spaceSize));
+           spaceOne, (spaceOne + spaceOneSize),
+           spaceTwo, (spaceTwo + spaceTwoSize));
   }
   inSpaceOne = 1;
 }
@@ -317,13 +318,54 @@ static struct object *gc_move(struct mobject *ptr)
 }
 
 /*
+        gcexpand -- expand the inactive memory space
+ */
+void gcexpand(int multiplier)
+{
+  struct object *space;
+  size_t spaceSize;
+
+  /* figure out where to expand */
+  if (inSpaceOne)
+  {
+    space = spaceTwo;
+  }
+  else
+  {
+    space = spaceOne;
+  }
+  spaceSize = (spaceOneSize > spaceTwoSize) ? spaceOneSize : spaceTwoSize;
+  spaceSize *= multiplier;
+
+  /* expand it */
+  space = realloc(space, spaceSize * sizeof(struct object));
+  if (!space)
+  {
+    sysError("failed to expand memory", NULL);
+  }
+
+  if (inSpaceOne)
+  {
+    spaceTwo = space;
+    spaceTwoSize = spaceSize;
+  }
+  else
+  {
+    spaceOne = space;
+    spaceOneSize = spaceSize;
+  }
+}
+
+/*
 	gcollect -- garbage collection entry point
 */
 extern int      gccount;
 struct object  *gcollect(int sz)
 {
   LstUInt       i;
+  size_t        spaceSize, oldSize;
 
+gcretry:
   gccount++;
 
   /*
@@ -332,17 +374,21 @@ struct object  *gcollect(int sz)
   if(inSpaceOne)
   {
     memoryBase = spaceTwo;
+    spaceSize = spaceTwoSize;
     inSpaceOne = 0;
     oldBase = spaceOne;
+    oldSize = spaceOneSize;
   }
   else
   {
     memoryBase = spaceOne;
+    spaceSize = spaceOneSize;
     inSpaceOne = 1;
     oldBase = spaceTwo;
+    oldSize = spaceTwoSize;
   }
   memoryPointer = memoryTop = memoryBase + spaceSize;
-  oldTop = oldBase + spaceSize;
+  oldTop = oldBase + oldSize;
 
   /*
      then do the collection 
@@ -364,7 +410,14 @@ struct object  *gcollect(int sz)
   memoryPointer = WORDSDOWN(memoryPointer, sz + 2);
   if(memoryPointer < memoryBase)
   {
-	  sysError("insufficient memory after garbage collection", (void *)(INT_PTR)sz);
+    /* need more space */
+    gcexpand(2);
+    goto gcretry;
+  }
+  else if (spaceOneSize != spaceTwoSize)
+  {
+    /* even them out */
+    gcexpand(1);
   }
   SETSIZE(memoryPointer, sz);
   return (memoryPointer);
@@ -433,6 +486,7 @@ struct object  *gcialloc(int sz)
 */
 
 static int      indirtop = 0;
+static size_t   indirSize;
 static struct object **indirArray;
 
 static unsigned int readWord(FILE * fp)
@@ -518,10 +572,12 @@ int fileIn(FILE * fp)
   if(inSpaceOne)
   {
     indirArray = (struct object * *) spaceTwo;
+    indirSize = spaceTwoSize;
   }
   else
   {
     indirArray = (struct object * *) spaceOne;
+    indirSize = spaceOneSize;
   }
   indirtop = 0;
 
@@ -548,7 +604,7 @@ int fileIn(FILE * fp)
   /*
      clean up after ourselves 
    */
-  memoryClear((char *) indirArray, spaceSize * sizeof(struct object));
+  memoryClear((char *) indirArray, indirSize * sizeof(struct object));
   return indirtop;
 }
 
@@ -653,10 +709,12 @@ int fileOut(FILE * fp)
   if(inSpaceOne)
   {
     indirArray = (struct object * *) spaceTwo;
+    indirSize = spaceTwoSize;
   }
   else
   {
     indirArray = (struct object * *) spaceOne;
+    indirSize = spaceOneSize;
   }
   indirtop = 0;
 
@@ -684,7 +742,7 @@ int fileOut(FILE * fp)
   /*
      clean up after ourselves 
    */
-  memoryClear((char *) indirArray, spaceSize * sizeof(struct object));
+  memoryClear((char *) indirArray, indirSize * sizeof(struct object));
   return indirtop;
 }
 
