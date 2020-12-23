@@ -414,6 +414,12 @@ gcretry:
     gcexpand(2);
     goto gcretry;
   }
+  else if (memoryPointer < memoryBase + (spaceSize >> 1))
+  {
+    /* we're not *out* of space, but to make GC's less frequent, we'll
+     * pre-expand the other space */
+    gcexpand(2);
+  }
   else if (spaceOneSize != spaceTwoSize)
   {
     /* even them out */
