@@ -2813,7 +2813,7 @@ addTempName: name
 	(((argNames includes: name)
 		or: [ instNames includes: name ] )
 		or: [ tempNames includes: name ] )
-		ifTrue: [ self error: 'doubly defined name '].
+		ifTrue: [ self error: 'doubly defined name ' + name asString].
 	tempNames := tempNames with: name.
 	maxTemps := maxTemps max: tempNames size
 !
@@ -2974,34 +2974,55 @@ readPrimitive  | num args lnum |
 	^ (PrimitiveNode at: lnum) number: num arguments: args
 !
 METHOD Parser
-readBlock    | stmts saveTemps lnum |
+readBlock    | stmts saveTemps temporaryLocation lnum |
 	saveTemps := tempNames.
 	lnum := lineNum.
 	self nextLex.
-	tokenType = $:
+	(tokenType = $: or: [tokenType = $|])
 		ifTrue: [ self readBlockTemporaries ].
 	stmts := self readStatementList.
+
+	" Our temps need to go out of scope, but we need the stack space so
+	  they're not clobbered by neighboring block "
+	temporaryLocation := saveTemps size.
+	[saveTemps size < maxTemps] whileTrue: [
+		saveTemps := saveTemps with: nil.
+	].
+
 	tempNames := saveTemps.
 	tokenType = $]
 		ifTrue: [ self nextLex.
 			^ (BlockNode at: lnum) statements: stmts
-				temporaryLocation: saveTemps size
+				temporaryLocation: temporaryLocation
 				lineNum: lnum ]
 		ifFalse: [ self error: 'unterminated block']
 !
 METHOD Parser
 readBlockTemporaries
-	[ tokenType = $: ]
-		whileTrue: [ self currentChar isAlphabetic
-			ifFalse: [ self error: 'ill formed block argument'].
+	tokenType = $: ifTrue: [
+		[ tokenType = $: ]
+			whileTrue: [ self currentChar isAlphabetic
+				ifFalse: [ self error: 'ill formed block argument'].
+				self nextLex.
+				self tokenIsName
+					ifTrue: [ self addTempName: token asSymbol ]
+					ifFalse: [ self error: 'invalid block argument list '].
+				self nextLex ].
+		tokenType = $|
+			ifTrue: [ self nextLex ]
+			ifFalse: [ self error: 'invalid block argument list '].
+	].
+	tokenType = $| ifTrue: [
+		" Non-argument temporaries "
+		self nextLex.
+		[ self tokenIsName ] whileTrue: [
+			self addTempName: token asSymbol.
 			self nextLex.
-			self tokenIsName
-				ifTrue: [ self addTempName: token asSymbol ]
-				ifFalse: [ self error: 'invalid block argument list '].
-			self nextLex ].
-	tokenType = $|
-		ifTrue: [ self nextLex ]
-		ifFalse: [ self error: 'invalid block argument list ']
+		].
+		tokenType = $|
+			ifTrue: [ self nextLex ]
+			ifFalse: [ self error: 'invalid block temporaries list' ].
+	].
 !
 METHOD Parser
 readCascade: base   | node list |
