@@ -64,6 +64,7 @@ readExtendBlock | steps step tempSlot lnum |
 	tokenType isNil ifTrue: [
 		^self error: 'Invalid extend block!'
 	].
+	self nextLex.
 	^(ExtendBlockNode at: lnum) tempSlot: tempSlot steps: steps
 !
 
@@ -590,7 +591,7 @@ setErrBlock: to
 
 =REPLFileReader
 fileIn: nm | fr |
-	fr := REPLFileReader new withFile: nm.
+	fr := self new withFile: nm.
 	fr fileIn.
 !
 
